@@ -1,0 +1,591 @@
+import { startField } from "./field.js";
+import {
+  HOME_PALETTE,
+  paletteFromHomeTrack,
+  paletteFromHues,
+  paletteFromTracks,
+} from "./palette.js";
+import { year2026 } from "./data/year-2026.js";
+import { activeNewsId, newsItems } from "./data/news.js";
+
+const app = document.querySelector("#app");
+const field = startField(document.querySelector("#field"));
+
+const MONTHS = year2026.months;
+const LATEST = MONTHS[MONTHS.length - 1];
+/** Current month's best track (FAV.01) — drives home field color. */
+const CURRENT_FAV = LATEST?.tracks?.[0] || null;
+const ACTIVE_NEWS = newsItems[activeNewsId] || newsItems["monthly-best-track"];
+
+const paletteCache = new Map();
+
+function path() {
+  const hash = location.hash.replace(/^#/, "") || "/";
+  return hash.startsWith("/") ? hash : `/${hash}`;
+}
+
+function pad(n) {
+  return String(n).padStart(2, "0");
+}
+
+function escapeAttr(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function formatArtTime(minutes) {
+  const m = Number(minutes) || 0;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  if (h <= 0) return `${m} min`;
+  return `${h}h ${pad(rem)}m`;
+}
+
+function formatDelta(delta) {
+  if (delta == null || Number.isNaN(delta)) return "—";
+  const pct = Math.round(delta * 100);
+  return `${pct > 0 ? "+" : ""}${pct}% vs last month`;
+}
+
+function creditLine(month) {
+  return "CHARON / STUDIO";
+}
+
+/** FAV tracks that belong to the monthly star (factual intersection). */
+function starFavTracks(month) {
+  const star = String(month.star?.artist || "").trim();
+  if (!star) return [];
+  return month.tracks.filter((t) => {
+    const artists = String(t.artist || "")
+      .split(/[/&|,]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return artists.includes(star) || String(t.artist).includes(star);
+  });
+}
+
+function starMonthBlock(month, top) {
+  const hits = starFavTracks(month);
+  const hitCards = hits
+    .map(
+      (t) => `
+      <article class="star-fav-card">
+        <p class="star-fav-rank">FAV.${pad(t.rank)}</p>
+        <h4 class="star-fav-title">${escapeHtml(t.title)}</h4>
+      </article>
+    `
+    )
+    .join("");
+
+  return `
+    <article class="track star-in-month">
+      <button class="track-head" type="button" aria-expanded="false" aria-label="Reveal monthly star">
+        <span class="rank">★</span>
+        <span class="track-artist star-artist-mask">MONTHLY STAR</span>
+        <span class="track-hint" aria-hidden="true">↓</span>
+      </button>
+      <div class="track-drawer">
+        <div class="track-drawer-inner star-reveal">
+          <div class="track-cover star-cover">
+            <img src="${month.star.cover || top.cover}" alt="${escapeAttr(month.star.artist)}" loading="lazy" />
+          </div>
+          <div class="star-art-panel">
+            <p class="track-kicker">本月最佳歌手 ‣ FAV ART</p>
+            <h3>${escapeHtml(month.star.artist)}</h3>
+            <p class="star-art-time">${formatArtTime(month.star.artMinutes)}</p>
+            <p class="track-meta">${month.star.artMinutes} min</p>
+          </div>
+          ${hits.length ? `<div class="star-fav-rail">${hitCards}</div>` : ""}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function findMonth(year, month) {
+  return MONTHS.find((m) => m.year === year && m.month === month) || null;
+}
+
+function parseRoute() {
+  const p = path();
+  if (p === "/" || p === "") return { name: "home" };
+  if (p === "/monthly-report" || p === "/monthly-report/") {
+    return { name: "report-index" };
+  }
+  if (p === "/monthly-report/star" || p === "/monthly-star") {
+    return { name: "star" };
+  }
+  const monthMatch = p.match(/^\/monthly-report\/(\d{4})\/(\d{1,2})$/);
+  if (monthMatch) {
+    return {
+      name: "month",
+      year: Number(monthMatch[1]),
+      month: Number(monthMatch[2]),
+    };
+  }
+  return { name: "home" };
+}
+
+function header(page) {
+  return `
+    <header class="site-header">
+      <a class="wordmark" href="#/" aria-label="CHARON STUDIO home">CHARON <i></i> <span>studio</span></a>
+      <nav class="nav-cols" aria-label="Primary">
+        <ul class="nav-list">
+          <li><a href="#/monthly-report" class="${page === "report" || page === "star" ? "is-active" : ""}">Monthly Report</a></li>
+        </ul>
+      </nav>
+    </header>
+  `;
+}
+
+function monthSwitcher(activeId) {
+  const links = MONTHS.map((m) => {
+    const href = `#/monthly-report/${m.year}/${pad(m.month)}`;
+    const active = m.id === activeId ? "is-active" : "";
+    return `<a class="month-chip ${active}" href="${href}">${pad(m.month)}</a>`;
+  }).join("");
+  return `
+    <nav class="month-switch" aria-label="2026 months">
+      <span class="month-switch-label">2026</span>
+      <div class="month-chips">${links}</div>
+    </nav>
+  `;
+}
+
+function newsPosterView(item) {
+  return `
+    <section class="home-news home-news-poster" aria-label="Now">
+      <div class="news-poster-media" aria-hidden="true">
+        <img src="${item.image}" alt="" />
+        <div class="news-poster-veil"></div>
+      </div>
+      <div class="news-poster-copy">
+        <p class="kicker">${escapeHtml(item.kicker)}</p>
+        <p class="news-poster-date">${escapeHtml(item.date)}</p>
+        <h2 class="news-poster-title">
+          <span class="news-poster-title-zh">${escapeHtml(item.title)}</span>
+          <span class="news-poster-title-en">${escapeHtml(item.titleEn || "")}</span>
+        </h2>
+        <p class="news-poster-sub">${escapeHtml(item.subtitle || "")}</p>
+        <div class="news-poster-venue">
+          <span>${escapeHtml(item.venue)}</span>
+          <span>${escapeHtml(item.venueEn || "")}</span>
+        </div>
+        <p class="news-poster-note">${escapeHtml(item.note || "")}</p>
+      </div>
+    </section>
+  `;
+}
+
+function newsTrackView(item) {
+  const track = CURRENT_FAV;
+  if (!track) {
+    return `
+      <section class="home-news home-news-track" aria-label="Now">
+        <p class="kicker">${escapeHtml(item.kicker)}</p>
+        <p class="index-sub">No monthly best track yet.</p>
+      </section>
+    `;
+  }
+  const rating = item.rating == null ? "—" : String(item.rating);
+  const metas = (item.metaPlaceholders || [])
+    .map(
+      (m) => `
+      <div class="news-track-stat">
+        <dt>${escapeHtml(m.label)}</dt>
+        <dd>${escapeHtml(m.value)}</dd>
+      </div>
+    `
+    )
+    .join("");
+
+  return `
+    <section class="home-news home-news-track" aria-label="Now">
+      <div class="news-track-grid">
+        <figure class="news-track-cover">
+          <img src="${track.cover}" alt="${escapeAttr(track.title)} cover" />
+        </figure>
+        <div class="news-track-panel">
+          <p class="kicker">${escapeHtml(item.kicker)}</p>
+          <p class="news-track-month">${LATEST.labelZh} ${LATEST.year} ‣ FAV.01</p>
+          <h2 class="news-track-title">${escapeHtml(track.title)}</h2>
+          <p class="news-track-artist">${escapeHtml(track.artist)}</p>
+          <p class="news-track-album">${escapeHtml(track.album || "—")}</p>
+          <div class="news-track-score">
+            <span class="news-track-score-label">${escapeHtml(item.scoreLabel || "Score")}</span>
+            <span class="news-track-score-num">${escapeHtml(rating)}</span>
+          </div>
+          <dl class="news-track-meta">${metas}</dl>
+          <a class="news-track-link" href="#/monthly-report/${LATEST.year}/${pad(LATEST.month)}">Open monthly report →</a>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function newsReleaseView(item) {
+  return `
+    <section class="home-news home-news-release" aria-label="Now">
+      <p class="kicker">${escapeHtml(item.kicker || "Release ‣ Soon")}</p>
+      <h2 class="news-release-title">${escapeHtml(item.title || "Untitled")}</h2>
+      <p class="news-release-meta">${escapeHtml(item.artist || "")}</p>
+      <p class="news-release-meta">${escapeHtml(item.date || "")}</p>
+      <p class="index-sub">${escapeHtml(item.blurb || "Details coming soon.")}</p>
+    </section>
+  `;
+}
+
+function homeNewsView() {
+  const item = ACTIVE_NEWS;
+  if (!item) return "";
+  if (item.type === "poster") return newsPosterView(item);
+  if (item.type === "release") return newsReleaseView(item);
+  return newsTrackView(item);
+}
+
+function homeView() {
+  document.title = "CHARON STUDIO";
+  document.body.dataset.page = "home";
+  field.setMode(0);
+  field.setPalette(paletteCache.get("home") || HOME_PALETTE);
+  const letters = [..."CHARON STUDIO"].map((ch) =>
+    ch === " " ? `<span class="gap" aria-hidden="true"></span>` : `<span>${ch}</span>`
+  );
+  return `
+    ${header("home")}
+    <main class="home-shell">
+      <section class="home home-hero">
+        <h1 class="home-mast" aria-label="CHARON STUDIO">${letters.join("")}</h1>
+        <p class="home-scroll-hint" aria-hidden="true">Scroll ‣ Now</p>
+      </section>
+      ${homeNewsView()}
+    </main>
+  `;
+}
+
+function fitMast() {
+  const mast = document.querySelector(".home-mast");
+  if (!mast) return;
+  const max = Math.min(window.innerWidth * 0.16, window.innerHeight * 0.36);
+  const min = 64;
+  let lo = min;
+  let hi = max;
+  const measure = (size) => {
+    mast.style.fontSize = `${size}px`;
+    mast.style.justifyContent = "flex-start";
+    mast.style.columnGap = "0px";
+    return [...mast.children].reduce((sum, el) => sum + el.getBoundingClientRect().width, 0);
+  };
+  const available = mast.clientWidth;
+  for (let i = 0; i < 18; i++) {
+    const mid = (lo + hi) / 2;
+    if (measure(mid) <= available * 0.92) lo = mid;
+    else hi = mid;
+  }
+  mast.style.fontSize = `${Math.floor(lo)}px`;
+  mast.style.justifyContent = "space-between";
+  mast.style.columnGap = "";
+}
+
+function reportIndexView() {
+  document.title = "MONTHLY REPORT — CHARON STUDIO";
+  document.body.dataset.page = "report";
+  field.setMode(1);
+  field.setPalette(paletteFromHues(LATEST.tracks));
+
+  const cards = MONTHS.map((m) => {
+    const top = m.tracks[0];
+    return `
+      <a class="month-card" href="#/monthly-report/${m.year}/${pad(m.month)}">
+        <div class="month-card-cover">
+          <img src="${top.cover}" alt="${escapeAttr(top.title)} cover" loading="lazy" />
+        </div>
+        <div class="month-card-meta">
+          <p class="kicker">${m.labelZh} ‣ ${m.labelEn}</p>
+          <h2>${escapeHtml(top.title)}</h2>
+          <p class="track-meta">${escapeHtml(top.artist)}</p>
+          <p class="track-meta">${m.plays} plays · Monthly Star ★</p>
+        </div>
+      </a>
+    `;
+  }).join("");
+
+  return `
+    ${header("report")}
+    <main class="report report-index">
+      ${monthSwitcher(null)}
+      <section class="month-grid">${cards}</section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>2026 Jan–Sep · archive continues</span>
+      </footer>
+    </main>
+  `;
+}
+
+function monthView(month) {
+  document.title = `${month.labelEn.toUpperCase()} ${month.year} — CHARON STUDIO`;
+  document.body.dataset.page = "report";
+  field.setMode(1);
+  field.setPalette(paletteCache.get(month.id) || paletteFromHues(month.tracks));
+
+  const top = month.tracks[0];
+  const tracks = month.tracks
+    .map(
+      (t) => `
+      <article class="track">
+        <button class="track-head" type="button" aria-expanded="false">
+          <span class="rank">${pad(t.rank)}</span>
+          <span class="track-artist">${escapeHtml(t.artist)}</span>
+          <span class="track-hint" aria-hidden="true">↓</span>
+        </button>
+        <div class="track-drawer">
+          <div class="track-drawer-inner">
+            <div class="track-cover">
+              <img src="${t.cover}" alt="${escapeAttr(t.title)} cover" loading="lazy" />
+            </div>
+            <div class="track-detail">
+              <p class="track-kicker">${pad(t.rank)} ‣ FAV.${pad(t.rank)}</p>
+              <h3>${escapeHtml(t.title)}</h3>
+              <p class="track-meta">${escapeHtml(t.artist)}</p>
+              <p class="track-meta">${escapeHtml(t.album || "—")}</p>
+            </div>
+          </div>
+        </div>
+      </article>
+    `
+    )
+    .join("");
+
+  return `
+    ${header("report")}
+    <main class="report">
+      ${monthSwitcher(month.id)}
+      <section class="report-hero">
+        <figure class="hero-cover">
+          <p class="kicker">Monthly Report ‣ ${month.labelZh} ${month.year}</p>
+          <div class="hero-stage">
+            <div class="hero-cover-frame">
+              <img src="${top.cover}" alt="${escapeAttr(top.title)} cover" />
+              <span class="hero-artist">${escapeHtml(top.artist)}</span>
+            </div>
+            <div class="top-mark" aria-label="FAV 01">
+              <span class="top-mark-num">1</span>
+              <span class="top-mark-label">FAV</span>
+            </div>
+          </div>
+          <figcaption>
+            <span>01 ‣ ${escapeHtml(top.title)}</span>
+            <span>FAV.01</span>
+          </figcaption>
+        </figure>
+        <dl class="meta-board">
+          <div class="stat">
+            <dt>听歌量 Plays</dt>
+            <dd>${month.plays}<small>${formatDelta(month.delta)}</small></dd>
+          </div>
+          <div class="stat">
+            <dt>Monthly Star</dt>
+            <dd>★<small>悬停揭晓</small></dd>
+          </div>
+          <div class="stat">
+            <dt>ART 时长</dt>
+            <dd>${formatArtTime(month.star.artMinutes)}<small>${month.star.artMinutes} min</small></dd>
+          </div>
+          <div class="stat">
+            <dt>FAV Tracks</dt>
+            <dd>04<small>${creditLine(month)}</small></dd>
+          </div>
+        </dl>
+      </section>
+      <section class="tracks">
+        <div class="tracks-head">
+          <p class="kicker">本月最爱</p>
+          <p class="kicker">${creditLine(month)}</p>
+        </div>
+        <div class="track-block">
+          <p class="kicker track-block-label">本月最佳歌手 ‣ Monthly Star</p>
+          <div class="track-list">
+            ${starMonthBlock(month, top)}
+          </div>
+        </div>
+        <div class="track-block">
+          <p class="kicker track-block-label">本月歌单 ‣ FAV.01–04</p>
+          <div class="track-list">${tracks}</div>
+        </div>
+      </section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>${month.labelEn} ${month.year}</span>
+      </footer>
+    </main>
+  `;
+}
+
+function starView() {
+  document.title = "MONTHLY STAR — CHARON STUDIO";
+  document.body.dataset.page = "star";
+  field.setMode(1);
+  const paletteTracks = MONTHS.map((m) => ({
+    hue: m.tracks[0]?.hue || "#c9a27e",
+    cover: m.star.cover || m.tracks[0]?.cover,
+  }));
+  field.setPalette(paletteCache.get("star") || paletteFromHues(paletteTracks));
+
+  const rows = MONTHS.map((m) => {
+    return `
+      <article class="star-row track">
+        <button class="track-head star-head" type="button" aria-expanded="false">
+          <span class="rank">${pad(m.month)}</span>
+          <span class="track-artist">${escapeHtml(m.star.artist)}</span>
+          <span class="star-month-label">${m.labelEn}</span>
+          <span class="track-hint" aria-hidden="true">↓</span>
+        </button>
+        <div class="track-drawer">
+          <div class="track-drawer-inner star-drawer-inner">
+            <div class="track-cover">
+              <img src="${m.star.cover || m.tracks[0].cover}" alt="${escapeAttr(m.star.artist)}" loading="lazy" />
+            </div>
+            <div class="track-detail">
+              <p class="track-kicker">${m.labelZh} ${m.year} ‣ Monthly Star</p>
+              <h3>${escapeHtml(m.star.artist)}</h3>
+              <p class="track-meta">FAV ART</p>
+              <p class="track-meta">ART 时长 ‣ ${formatArtTime(m.star.artMinutes)} · ${m.star.artMinutes} min</p>
+              <p class="track-meta"><a href="#/monthly-report/${m.year}/${pad(m.month)}">Open month report →</a></p>
+            </div>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  return `
+    ${header("star")}
+    <main class="report star-page">
+      <section class="star-hero">
+        <p class="kicker">Monthly Report ‣ Monthly Star</p>
+        <h1 class="index-title">FAV ART of each month.</h1>
+        <p class="index-sub">Best artist · listening duration · ${year2026.year}</p>
+        ${monthSwitcher(null)}
+      </section>
+      <section class="tracks star-tracks">
+        <div class="tracks-head">
+          <p class="kicker">2026 ‣ Jan–Sep</p>
+          <p class="kicker">${MONTHS.length} stars</p>
+        </div>
+        <div class="track-list">${rows}</div>
+      </section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>Monthly Star / FAV ART</span>
+      </footer>
+    </main>
+  `;
+}
+
+function bindDrawers(selector = ".track") {
+  const items = [...document.querySelectorAll(selector)];
+  if (!items.length) return;
+
+  const closeAll = (except) => {
+    items.forEach((item) => {
+      if (item === except) return;
+      item.classList.remove("is-open");
+      const btn = item.querySelector(".track-head");
+      if (btn) btn.setAttribute("aria-expanded", "false");
+    });
+  };
+
+  items.forEach((item) => {
+    const head = item.querySelector(".track-head");
+    let leaveTimer = 0;
+    const open = () => {
+      clearTimeout(leaveTimer);
+      closeAll(item);
+      item.classList.add("is-open");
+      head.setAttribute("aria-expanded", "true");
+    };
+    const close = () => {
+      item.classList.remove("is-open");
+      head.setAttribute("aria-expanded", "false");
+    };
+    item.addEventListener("mouseenter", open);
+    item.addEventListener("mouseleave", () => {
+      leaveTimer = window.setTimeout(close, 120);
+    });
+    head.addEventListener("focus", open);
+    head.addEventListener("blur", () => {
+      leaveTimer = window.setTimeout(() => {
+        if (!item.contains(document.activeElement)) close();
+      }, 120);
+    });
+    head.addEventListener("click", () => {
+      if (item.classList.contains("is-open")) close();
+      else open();
+    });
+  });
+}
+
+async function ensurePalette(key, tracks) {
+  if (paletteCache.has(key)) return paletteCache.get(key);
+  const colors = await paletteFromTracks(tracks);
+  paletteCache.set(key, colors);
+  return colors;
+}
+
+async function ensureHomePalette() {
+  if (paletteCache.has("home")) return paletteCache.get("home");
+  const colors = await paletteFromHomeTrack(CURRENT_FAV);
+  paletteCache.set("home", colors);
+  return colors;
+}
+
+async function render() {
+  const route = parseRoute();
+
+  if (route.name === "month") {
+    const month = findMonth(route.year, route.month);
+    if (!month) {
+      location.hash = "#/monthly-report";
+      return;
+    }
+    app.innerHTML = monthView(month);
+    bindDrawers();
+    const colors = await ensurePalette(month.id, month.tracks);
+    if (parseRoute().name === "month") field.setPalette(colors);
+  } else if (route.name === "star") {
+    app.innerHTML = starView();
+    bindDrawers(".star-row");
+    const tracks = MONTHS.flatMap((m) => m.tracks.slice(0, 1));
+    const colors = await ensurePalette("star", tracks);
+    if (parseRoute().name === "star") field.setPalette(colors);
+  } else if (route.name === "report-index") {
+    app.innerHTML = reportIndexView();
+    const colors = await ensurePalette(LATEST.id, LATEST.tracks);
+    if (parseRoute().name === "report-index") field.setPalette(colors);
+  } else {
+    app.innerHTML = homeView();
+    requestAnimationFrame(fitMast);
+    const colors = await ensureHomePalette();
+    if (parseRoute().name === "home") field.setPalette(colors);
+  }
+  window.scrollTo(0, 0);
+}
+
+window.addEventListener("hashchange", () => {
+  render();
+});
+window.addEventListener("resize", () => {
+  if (document.body.dataset.page === "home") fitMast();
+});
+render();
