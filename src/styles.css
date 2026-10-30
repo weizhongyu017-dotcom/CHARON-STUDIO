@@ -562,6 +562,10 @@ button {
   padding: 96px var(--pad) 0;
 }
 
+.archive-switch .month-switch-gap {
+  margin-left: 10px;
+}
+
 .month-switch-label {
   font-size: var(--nav);
   font-weight: 700;

@@ -5,17 +5,23 @@ import {
   paletteFromHues,
   paletteFromTracks,
 } from "./palette.js";
-import { year2026 } from "./data/year-2026.js";
+import {
+  ALL_MONTHS,
+  LATEST_MONTH,
+  YEAR_MAP,
+  YEARS,
+  findMonth,
+  monthsForYear,
+} from "./data/catalog.js";
 import { activeNewsId, newsItems } from "./data/news.js";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
 
-const MONTHS = year2026.months;
-const LATEST = MONTHS[MONTHS.length - 1];
-/** Current month's best track (FAV.01) — drives home field color. */
+const LATEST = LATEST_MONTH;
 const CURRENT_FAV = LATEST?.tracks?.[0] || null;
 const ACTIVE_NEWS = newsItems[activeNewsId] || newsItems["monthly-best-track"];
+const YEAR_LIST = YEARS.map((y) => y.year);
 
 const paletteCache = new Map();
 
@@ -56,11 +62,10 @@ function formatDelta(delta) {
   return `${pct > 0 ? "+" : ""}${pct}% vs last month`;
 }
 
-function creditLine(month) {
+function creditLine() {
   return "CHARON / STUDIO";
 }
 
-/** FAV tracks that belong to the monthly star (factual intersection). */
 function starFavTracks(month) {
   const star = String(month.star?.artist || "").trim();
   if (!star) return [];
@@ -111,18 +116,19 @@ function starMonthBlock(month, top) {
   `;
 }
 
-function findMonth(year, month) {
-  return MONTHS.find((m) => m.year === year && m.month === month) || null;
-}
-
 function parseRoute() {
   const p = path();
   if (p === "/" || p === "") return { name: "home" };
   if (p === "/monthly-report" || p === "/monthly-report/") {
-    return { name: "report-index" };
+    return { name: "report-index", year: LATEST.year };
+  }
+  const yearOnly = p.match(/^\/monthly-report\/(\d{4})$/);
+  if (yearOnly) {
+    const year = Number(yearOnly[1]);
+    if (YEAR_MAP[year]) return { name: "report-index", year };
   }
   if (p === "/monthly-report/star" || p === "/monthly-star") {
-    return { name: "star" };
+    return { name: "star", year: LATEST.year };
   }
   const monthMatch = p.match(/^\/monthly-report\/(\d{4})\/(\d{1,2})$/);
   if (monthMatch) {
@@ -148,16 +154,27 @@ function header(page) {
   `;
 }
 
-function monthSwitcher(activeId) {
-  const links = MONTHS.map((m) => {
-    const href = `#/monthly-report/${m.year}/${pad(m.month)}`;
-    const active = m.id === activeId ? "is-active" : "";
-    return `<a class="month-chip ${active}" href="${href}">${pad(m.month)}</a>`;
+function archiveSwitcher(activeYear, activeMonthId) {
+  const yearLinks = YEAR_LIST.map((y) => {
+    const active = y === activeYear ? "is-active" : "";
+    return `<a class="month-chip ${active}" href="#/monthly-report/${y}">${y}</a>`;
   }).join("");
+
+  const months = monthsForYear(activeYear);
+  const monthLinks = months
+    .map((m) => {
+      const href = `#/monthly-report/${m.year}/${pad(m.month)}`;
+      const active = m.id === activeMonthId ? "is-active" : "";
+      return `<a class="month-chip ${active}" href="${href}">${pad(m.month)}</a>`;
+    })
+    .join("");
+
   return `
-    <nav class="month-switch" aria-label="2026 months">
-      <span class="month-switch-label">2026</span>
-      <div class="month-chips">${links}</div>
+    <nav class="month-switch archive-switch" aria-label="Archive">
+      <span class="month-switch-label">YEAR</span>
+      <div class="month-chips">${yearLinks}</div>
+      <span class="month-switch-label month-switch-gap">MONTH</span>
+      <div class="month-chips">${monthLinks}</div>
     </nav>
   `;
 }
@@ -297,15 +314,19 @@ function fitMast() {
   mast.style.columnGap = "";
 }
 
-function reportIndexView() {
-  document.title = "MONTHLY REPORT — CHARON STUDIO";
+function reportIndexView(year) {
+  const y = YEAR_MAP[year] ? year : LATEST.year;
+  const months = monthsForYear(y);
+  document.title = `MONTHLY REPORT ${y} — CHARON STUDIO`;
   document.body.dataset.page = "report";
   field.setMode(1);
-  field.setPalette(paletteFromHues(LATEST.tracks));
+  const paletteSource = months[months.length - 1] || LATEST;
+  field.setPalette(paletteFromHues(paletteSource.tracks));
 
-  const cards = MONTHS.map((m) => {
-    const top = m.tracks[0];
-    return `
+  const cards = months
+    .map((m) => {
+      const top = m.tracks[0];
+      return `
       <a class="month-card" href="#/monthly-report/${m.year}/${pad(m.month)}">
         <div class="month-card-cover">
           <img src="${top.cover}" alt="${escapeAttr(top.title)} cover" loading="lazy" />
@@ -318,16 +339,17 @@ function reportIndexView() {
         </div>
       </a>
     `;
-  }).join("");
+    })
+    .join("");
 
   return `
     ${header("report")}
     <main class="report report-index">
-      ${monthSwitcher(null)}
+      ${archiveSwitcher(y, null)}
       <section class="month-grid">${cards}</section>
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>2026 Jan–Sep · archive continues</span>
+        <span>${y} archive · ${months.length} months</span>
       </footer>
     </main>
   `;
@@ -370,7 +392,7 @@ function monthView(month) {
   return `
     ${header("report")}
     <main class="report">
-      ${monthSwitcher(month.id)}
+      ${archiveSwitcher(month.year, month.id)}
       <section class="report-hero">
         <figure class="hero-cover">
           <p class="kicker">Monthly Report ‣ ${month.labelZh} ${month.year}</p>
@@ -404,14 +426,14 @@ function monthView(month) {
           </div>
           <div class="stat">
             <dt>FAV Tracks</dt>
-            <dd>04<small>${creditLine(month)}</small></dd>
+            <dd>04<small>${creditLine()}</small></dd>
           </div>
         </dl>
       </section>
       <section class="tracks">
         <div class="tracks-head">
           <p class="kicker">本月最爱</p>
-          <p class="kicker">${creditLine(month)}</p>
+          <p class="kicker">${creditLine()}</p>
         </div>
         <div class="track-block">
           <p class="kicker track-block-label">本月最佳歌手 ‣ Monthly Star</p>
@@ -427,67 +449,6 @@ function monthView(month) {
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
         <span>${month.labelEn} ${month.year}</span>
-      </footer>
-    </main>
-  `;
-}
-
-function starView() {
-  document.title = "MONTHLY STAR — CHARON STUDIO";
-  document.body.dataset.page = "star";
-  field.setMode(1);
-  const paletteTracks = MONTHS.map((m) => ({
-    hue: m.tracks[0]?.hue || "#c9a27e",
-    cover: m.star.cover || m.tracks[0]?.cover,
-  }));
-  field.setPalette(paletteCache.get("star") || paletteFromHues(paletteTracks));
-
-  const rows = MONTHS.map((m) => {
-    return `
-      <article class="star-row track">
-        <button class="track-head star-head" type="button" aria-expanded="false">
-          <span class="rank">${pad(m.month)}</span>
-          <span class="track-artist">${escapeHtml(m.star.artist)}</span>
-          <span class="star-month-label">${m.labelEn}</span>
-          <span class="track-hint" aria-hidden="true">↓</span>
-        </button>
-        <div class="track-drawer">
-          <div class="track-drawer-inner star-drawer-inner">
-            <div class="track-cover">
-              <img src="${m.star.cover || m.tracks[0].cover}" alt="${escapeAttr(m.star.artist)}" loading="lazy" />
-            </div>
-            <div class="track-detail">
-              <p class="track-kicker">${m.labelZh} ${m.year} ‣ Monthly Star</p>
-              <h3>${escapeHtml(m.star.artist)}</h3>
-              <p class="track-meta">FAV ART</p>
-              <p class="track-meta">ART 时长 ‣ ${formatArtTime(m.star.artMinutes)} · ${m.star.artMinutes} min</p>
-              <p class="track-meta"><a href="#/monthly-report/${m.year}/${pad(m.month)}">Open month report →</a></p>
-            </div>
-          </div>
-        </div>
-      </article>
-    `;
-  }).join("");
-
-  return `
-    ${header("star")}
-    <main class="report star-page">
-      <section class="star-hero">
-        <p class="kicker">Monthly Report ‣ Monthly Star</p>
-        <h1 class="index-title">FAV ART of each month.</h1>
-        <p class="index-sub">Best artist · listening duration · ${year2026.year}</p>
-        ${monthSwitcher(null)}
-      </section>
-      <section class="tracks star-tracks">
-        <div class="tracks-head">
-          <p class="kicker">2026 ‣ Jan–Sep</p>
-          <p class="kicker">${MONTHS.length} stars</p>
-        </div>
-        <div class="track-list">${rows}</div>
-      </section>
-      <footer class="site-footer">
-        <span>CHARON STUDIO</span>
-        <span>Monthly Star / FAV ART</span>
       </footer>
     </main>
   `;
@@ -556,22 +517,19 @@ async function render() {
   if (route.name === "month") {
     const month = findMonth(route.year, route.month);
     if (!month) {
-      location.hash = "#/monthly-report";
+      location.hash = `#/monthly-report/${route.year || LATEST.year}`;
       return;
     }
     app.innerHTML = monthView(month);
     bindDrawers();
     const colors = await ensurePalette(month.id, month.tracks);
     if (parseRoute().name === "month") field.setPalette(colors);
-  } else if (route.name === "star") {
-    app.innerHTML = starView();
-    bindDrawers(".star-row");
-    const tracks = MONTHS.flatMap((m) => m.tracks.slice(0, 1));
-    const colors = await ensurePalette("star", tracks);
-    if (parseRoute().name === "star") field.setPalette(colors);
   } else if (route.name === "report-index") {
-    app.innerHTML = reportIndexView();
-    const colors = await ensurePalette(LATEST.id, LATEST.tracks);
+    const year = route.year || LATEST.year;
+    app.innerHTML = reportIndexView(year);
+    const months = monthsForYear(year);
+    const sample = months[months.length - 1] || LATEST;
+    const colors = await ensurePalette(`index-${year}`, sample.tracks);
     if (parseRoute().name === "report-index") field.setPalette(colors);
   } else {
     app.innerHTML = homeView();
