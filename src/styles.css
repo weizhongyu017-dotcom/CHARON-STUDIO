@@ -155,7 +155,28 @@ button {
 .news-home-more {
   padding: 0 var(--pad) 8vh;
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 18px 28px;
+}
+
+.home-latest-chip {
+  position: absolute;
+  left: var(--pad);
+  bottom: 3.2vh;
+  z-index: 2;
+  max-width: min(52vw, 420px);
+  font-size: var(--nav);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  transition: opacity 0.45s var(--ease);
+}
+
+.home-latest-chip:hover,
+.home-latest-chip:focus-visible {
+  opacity: 1;
 }
 
 .news-detail {

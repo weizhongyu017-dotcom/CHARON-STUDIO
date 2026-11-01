@@ -1,18 +1,18 @@
-import { startField } from "./field.js";
+import { startField } from "./field.js?v=37";
 import {
   HOME_PALETTE,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js";
+} from "./palette.js?v=37";
 import {
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js";
-import { monthlyNewsIds, newsItems } from "./data/news.js";
+} from "./data/catalog.js?v=37";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=37";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
@@ -319,10 +319,18 @@ function newsItemView(item, index) {
 
 function homeNewsView() {
   if (!LATEST_NEWS) return "";
+  // Home teaser: always readable overlay; prefer square cover over lettered landscape.
+  const teaser = {
+    ...LATEST_NEWS,
+    lettered: false,
+    image: LATEST_NEWS.homeImage || LATEST_NEWS.image,
+    objectPosition: LATEST_NEWS.homeImage ? "50% 35%" : LATEST_NEWS.objectPosition,
+  };
   return `
     <section class="monthly-news" aria-label="Latest Monthly News">
-      ${newsItemView(LATEST_NEWS, 0)}
+      ${newsItemView(teaser, 0)}
       <div class="news-home-more">
+        <a class="archive-latest" href="#/monthly-news/${encodeURIComponent(LATEST_NEWS.id)}">Open full story →</a>
         <a class="archive-latest" href="#/monthly-news">All Monthly News →</a>
       </div>
     </section>
@@ -410,6 +418,11 @@ function homeView() {
         <h1 class="home-mast" aria-label="CHARON STUDIO">${letters.join("")}</h1>
         <p class="home-scroll-hint" aria-hidden="true">Scroll ‣ Latest</p>
         <a class="home-now-jump" href="#now">Latest ↓</a>
+        ${
+          LATEST_NEWS
+            ? `<a class="home-latest-chip" href="#now">${escapeHtml(LATEST_NEWS.subtitle || LATEST_NEWS.title)} · ${escapeHtml(LATEST_NEWS.date || "")}</a>`
+            : ""
+        }
       </section>
       ${homeNewsView()}
     </main>
