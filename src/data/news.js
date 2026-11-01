@@ -1,6 +1,6 @@
 /**
  * Home “NOW” / live news layer.
- * Swap `activeId` to change what the second home screen shows.
+ * Swap `activeNewsId` to change what the second home screen shows.
  * Types: "poster" | "track" | "release"
  */
 export const newsItems = {
@@ -21,13 +21,12 @@ export const newsItems = {
     id: "monthly-best-track",
     type: "track",
     kicker: "Now ‣ Monthly Best",
-    // rating / extra copy filled in later — framework only
-    rating: null,
+    rating: 9.1,
     scoreLabel: "Score",
     metaPlaceholders: [
-      { label: "Mood", value: "—" },
-      { label: "Era", value: "—" },
-      { label: "Note", value: "—" },
+      { label: "Mood", value: "Neon bass" },
+      { label: "Era", value: "2025–26" },
+      { label: "Note", value: "September FAV.01 — night-drive density" },
     ],
   },
 };

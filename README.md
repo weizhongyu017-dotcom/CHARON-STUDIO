@@ -1,6 +1,6 @@
 # CHARON STUDIO
 
-Personal studio site. First project: **MONTHLY REPORT**.
+Personal studio site. First project: **MONTHLY REPORT** (2022–2026).
 
 ## 在另一台电脑上打开
 
@@ -46,13 +46,20 @@ CHARON STUDIO/
     styles.css
     field.js
     palette.js
+    media/
+      shan-yichun-live.jpg
     data/
-      year-2026.js   # 2026 Jan–Sep monthly report + stars
+      catalog.js
+      news.js
+      year-2022.js … year-2026.js
 ```
 
 ## 路由
 
-- `#/` 首页
-- `#/monthly-report` 2026 月报总览
-- `#/monthly-report/2026/01` … `#/monthly-report/2026/09` 单月 FAV.01–04
-- `#/monthly-report/star` Monthly Star（FAV ART + ART 时长）
+- `#/` 首页（WebGL field + NOW）
+- `#/monthly-report` 最新年总览
+- `#/monthly-report/2024` 指定年总览
+- `#/monthly-report/2024/03` 单月 FAV + Monthly Star
+- `#/monthly-report/star` / `#/monthly-report/star/2024` Monthly Star 档案
+
+首页 NOW 内容由 `src/data/news.js` 的 `activeNewsId` 切换。

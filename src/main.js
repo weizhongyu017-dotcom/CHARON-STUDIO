@@ -6,7 +6,6 @@ import {
   paletteFromTracks,
 } from "./palette.js";
 import {
-  ALL_MONTHS,
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
@@ -62,7 +61,21 @@ function formatDelta(delta) {
   return `${pct > 0 ? "+" : ""}${pct}% vs last month`;
 }
 
-function creditLine() {
+function formatDeltaShort(delta) {
+  if (delta == null || Number.isNaN(delta)) return "—";
+  const pct = Math.round(delta * 100);
+  return `${pct > 0 ? "+" : ""}${pct}%`;
+}
+
+function coverUrl(url, size = 600) {
+  if (!url) return "";
+  return String(url).replace(/\/\d+x\d+bb(\.[a-z]+)$/i, `/${size}x${size}bb$1`);
+}
+
+function creditLine(month) {
+  if (month?.listener && month?.source) {
+    return `${month.listener} / ${month.source}`;
+  }
   return "CHARON / STUDIO";
 }
 
@@ -93,7 +106,7 @@ function starMonthBlock(month, top) {
 
   return `
     <article class="track star-in-month">
-      <button class="track-head" type="button" aria-expanded="false" aria-label="Reveal monthly star">
+      <button class="track-head" type="button" aria-expanded="false" aria-label="Reveal monthly star — tap or hover">
         <span class="rank">★</span>
         <span class="track-artist star-artist-mask">MONTHLY STAR</span>
         <span class="track-hint" aria-hidden="true">↓</span>
@@ -101,7 +114,7 @@ function starMonthBlock(month, top) {
       <div class="track-drawer">
         <div class="track-drawer-inner star-reveal">
           <div class="track-cover star-cover">
-            <img src="${month.star.cover || top.cover}" alt="${escapeAttr(month.star.artist)}" loading="lazy" />
+            <img src="${coverUrl(month.star.cover || top.cover)}" alt="${escapeAttr(month.star.artist)}" loading="lazy" />
           </div>
           <div class="star-art-panel">
             <p class="track-kicker">本月最佳歌手 ‣ FAV ART</p>
@@ -122,13 +135,18 @@ function parseRoute() {
   if (p === "/monthly-report" || p === "/monthly-report/") {
     return { name: "report-index", year: LATEST.year };
   }
+  const starYear = p.match(/^\/monthly-report\/star\/(\d{4})$/);
+  if (starYear) {
+    const year = Number(starYear[1]);
+    if (YEAR_MAP[year]) return { name: "star", year };
+  }
+  if (p === "/monthly-report/star" || p === "/monthly-star") {
+    return { name: "star", year: LATEST.year };
+  }
   const yearOnly = p.match(/^\/monthly-report\/(\d{4})$/);
   if (yearOnly) {
     const year = Number(yearOnly[1]);
     if (YEAR_MAP[year]) return { name: "report-index", year };
-  }
-  if (p === "/monthly-report/star" || p === "/monthly-star") {
-    return { name: "star", year: LATEST.year };
   }
   const monthMatch = p.match(/^\/monthly-report\/(\d{4})\/(\d{1,2})$/);
   if (monthMatch) {
@@ -147,7 +165,8 @@ function header(page) {
       <a class="wordmark" href="#/" aria-label="CHARON STUDIO home">CHARON <i></i> <span>studio</span></a>
       <nav class="nav-cols" aria-label="Primary">
         <ul class="nav-list">
-          <li><a href="#/monthly-report" class="${page === "report" || page === "star" ? "is-active" : ""}">Monthly Report</a></li>
+          <li><a href="#/monthly-report" class="${page === "report" ? "is-active" : ""}">Monthly Report</a></li>
+          <li><a href="#/monthly-report/star" class="${page === "star" ? "is-active" : ""}">Star</a></li>
         </ul>
       </nav>
     </header>
@@ -180,11 +199,12 @@ function archiveSwitcher(activeYear, activeMonthId) {
 }
 
 function newsPosterView(item) {
+  const alt = [item.title, item.subtitle, item.venue, item.date].filter(Boolean).join(" · ");
   return `
-    <section class="home-news home-news-poster" aria-label="Now">
-      <div class="news-poster-media" aria-hidden="true">
-        <img src="${item.image}" alt="" />
-        <div class="news-poster-veil"></div>
+    <section id="now" class="home-news home-news-poster" aria-label="Now">
+      <div class="news-poster-media">
+        <img src="${escapeAttr(item.image)}" alt="${escapeAttr(alt)}" />
+        <div class="news-poster-veil" aria-hidden="true"></div>
       </div>
       <div class="news-poster-copy">
         <p class="kicker">${escapeHtml(item.kicker)}</p>
@@ -227,10 +247,10 @@ function newsTrackView(item) {
     .join("");
 
   return `
-    <section class="home-news home-news-track" aria-label="Now">
+    <section id="now" class="home-news home-news-track" aria-label="Now">
       <div class="news-track-grid">
         <figure class="news-track-cover">
-          <img src="${track.cover}" alt="${escapeAttr(track.title)} cover" />
+          <img src="${coverUrl(track.cover, 800)}" alt="${escapeAttr(track.title)} cover" />
         </figure>
         <div class="news-track-panel">
           <p class="kicker">${escapeHtml(item.kicker)}</p>
@@ -252,7 +272,7 @@ function newsTrackView(item) {
 
 function newsReleaseView(item) {
   return `
-    <section class="home-news home-news-release" aria-label="Now">
+    <section id="now" class="home-news home-news-release" aria-label="Now">
       <p class="kicker">${escapeHtml(item.kicker || "Release ‣ Soon")}</p>
       <h2 class="news-release-title">${escapeHtml(item.title || "Untitled")}</h2>
       <p class="news-release-meta">${escapeHtml(item.artist || "")}</p>
@@ -284,6 +304,7 @@ function homeView() {
       <section class="home home-hero">
         <h1 class="home-mast" aria-label="CHARON STUDIO">${letters.join("")}</h1>
         <p class="home-scroll-hint" aria-hidden="true">Scroll ‣ Now</p>
+        <a class="home-now-jump" href="#now">Now ↓</a>
       </section>
       ${homeNewsView()}
     </main>
@@ -326,16 +347,83 @@ function reportIndexView(year) {
   const cards = months
     .map((m) => {
       const top = m.tracks[0];
+      const starName = m.star?.artist || "—";
       return `
       <a class="month-card" href="#/monthly-report/${m.year}/${pad(m.month)}">
         <div class="month-card-cover">
-          <img src="${top.cover}" alt="${escapeAttr(top.title)} cover" loading="lazy" />
+          <img src="${coverUrl(top.cover)}" alt="${escapeAttr(top.title)} cover" loading="lazy" />
         </div>
         <div class="month-card-meta">
           <p class="kicker">${m.labelZh} ‣ ${m.labelEn}</p>
           <h2>${escapeHtml(top.title)}</h2>
           <p class="track-meta">${escapeHtml(top.artist)}</p>
-          <p class="track-meta">${m.plays} plays · Monthly Star ★</p>
+          <p class="track-meta">${m.plays} plays · ${formatDeltaShort(m.delta)}</p>
+          <p class="track-meta month-card-star">Star ‣ ${escapeHtml(starName)}</p>
+        </div>
+      </a>
+    `;
+    })
+    .join("");
+
+  const latestHref = `#/monthly-report/${LATEST.year}/${pad(LATEST.month)}`;
+
+  return `
+    ${header("report")}
+    <main class="report report-index">
+      ${archiveSwitcher(y, null)}
+      <div class="archive-lead">
+        <p class="kicker">Monthly Report ‣ ${y}</p>
+        <a class="archive-latest" href="${latestHref}">Open latest month → ${LATEST.labelEn} ${LATEST.year}</a>
+      </div>
+      <section class="month-grid">${cards}</section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>${y} archive · ${months.length} months</span>
+      </footer>
+    </main>
+  `;
+}
+
+function starArchiveSwitcher(activeYear) {
+  const yearLinks = YEAR_LIST.map((y) => {
+    const active = y === activeYear ? "is-active" : "";
+    return `<a class="month-chip ${active}" href="#/monthly-report/star/${y}">${y}</a>`;
+  }).join("");
+
+  return `
+    <nav class="month-switch archive-switch" aria-label="Star archive years">
+      <span class="month-switch-label">YEAR</span>
+      <div class="month-chips">${yearLinks}</div>
+    </nav>
+  `;
+}
+
+function starView(year) {
+  const y = YEAR_MAP[year] ? year : LATEST.year;
+  const months = monthsForYear(y);
+  document.title = `MONTHLY STAR ${y} — CHARON STUDIO`;
+  document.body.dataset.page = "star";
+  field.setMode(1);
+  const paletteSource = months[months.length - 1] || LATEST;
+  field.setPalette(paletteFromHues(paletteSource.tracks));
+
+  const cards = months
+    .map((m) => {
+      const cover = coverUrl(m.star?.cover || m.tracks[0]?.cover);
+      const hits = starFavTracks(m);
+      const hitNote = hits.length
+        ? `FAV hit · ${hits.map((t) => t.title).join(" / ")}`
+        : "No FAV intersection";
+      return `
+      <a class="star-card" href="#/monthly-report/${m.year}/${pad(m.month)}">
+        <div class="star-card-cover">
+          <img src="${cover}" alt="${escapeAttr(m.star?.artist || "")} cover" loading="lazy" />
+        </div>
+        <div class="star-card-meta">
+          <p class="kicker">${m.labelZh} ‣ ${pad(m.month)}</p>
+          <h2>${escapeHtml(m.star?.artist || "—")}</h2>
+          <p class="track-meta">${formatArtTime(m.star?.artMinutes)} · ART</p>
+          <p class="track-meta">${escapeHtml(hitNote)}</p>
         </div>
       </a>
     `;
@@ -343,13 +431,17 @@ function reportIndexView(year) {
     .join("");
 
   return `
-    ${header("report")}
-    <main class="report report-index">
-      ${archiveSwitcher(y, null)}
-      <section class="month-grid">${cards}</section>
+    ${header("star")}
+    <main class="report star-page">
+      ${starArchiveSwitcher(y)}
+      <div class="archive-lead">
+        <p class="kicker">Monthly Star ‣ ${y}</p>
+        <p class="archive-lead-sub">${months.length} months · FAV ART + ART time</p>
+      </div>
+      <section class="month-grid star-grid">${cards}</section>
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>${y} archive · ${months.length} months</span>
+        <span>Star archive ${y}</span>
       </footer>
     </main>
   `;
@@ -362,11 +454,14 @@ function monthView(month) {
   field.setPalette(paletteCache.get(month.id) || paletteFromHues(month.tracks));
 
   const top = month.tracks[0];
+  const favCount = month.tracks.length;
+  const favRange = favCount <= 1 ? "FAV.01" : `FAV.01–${pad(favCount)}`;
+  const credit = creditLine(month);
   const tracks = month.tracks
     .map(
       (t) => `
       <article class="track">
-        <button class="track-head" type="button" aria-expanded="false">
+        <button class="track-head" type="button" aria-expanded="false" aria-label="FAV.${pad(t.rank)} ${escapeAttr(t.title)} by ${escapeAttr(t.artist)}">
           <span class="rank">${pad(t.rank)}</span>
           <span class="track-artist">${escapeHtml(t.artist)}</span>
           <span class="track-hint" aria-hidden="true">↓</span>
@@ -374,7 +469,7 @@ function monthView(month) {
         <div class="track-drawer">
           <div class="track-drawer-inner">
             <div class="track-cover">
-              <img src="${t.cover}" alt="${escapeAttr(t.title)} cover" loading="lazy" />
+              <img src="${coverUrl(t.cover)}" alt="${escapeAttr(t.title)} cover" loading="lazy" />
             </div>
             <div class="track-detail">
               <p class="track-kicker">${pad(t.rank)} ‣ FAV.${pad(t.rank)}</p>
@@ -398,7 +493,7 @@ function monthView(month) {
           <p class="kicker">Monthly Report ‣ ${month.labelZh} ${month.year}</p>
           <div class="hero-stage">
             <div class="hero-cover-frame">
-              <img src="${top.cover}" alt="${escapeAttr(top.title)} cover" />
+              <img src="${coverUrl(top.cover, 800)}" alt="${escapeAttr(top.title)} cover" />
               <span class="hero-artist">${escapeHtml(top.artist)}</span>
             </div>
             <div class="top-mark" aria-label="FAV 01">
@@ -418,7 +513,7 @@ function monthView(month) {
           </div>
           <div class="stat">
             <dt>Monthly Star</dt>
-            <dd>★<small>悬停揭晓</small></dd>
+            <dd>★<small>点按 / 悬停揭晓</small></dd>
           </div>
           <div class="stat">
             <dt>ART 时长</dt>
@@ -426,14 +521,14 @@ function monthView(month) {
           </div>
           <div class="stat">
             <dt>FAV Tracks</dt>
-            <dd>04<small>${creditLine()}</small></dd>
+            <dd>${pad(favCount)}<small>${escapeHtml(credit)}</small></dd>
           </div>
         </dl>
       </section>
       <section class="tracks">
         <div class="tracks-head">
           <p class="kicker">本月最爱</p>
-          <p class="kicker">${creditLine()}</p>
+          <p class="kicker">${escapeHtml(credit)}</p>
         </div>
         <div class="track-block">
           <p class="kicker track-block-label">本月最佳歌手 ‣ Monthly Star</p>
@@ -442,12 +537,12 @@ function monthView(month) {
           </div>
         </div>
         <div class="track-block">
-          <p class="kicker track-block-label">本月歌单 ‣ FAV.01–04</p>
+          <p class="kicker track-block-label">本月歌单 ‣ ${favRange}</p>
           <div class="track-list">${tracks}</div>
         </div>
       </section>
       <footer class="site-footer">
-        <span>CHARON STUDIO</span>
+        <span>${escapeHtml(credit)}</span>
         <span>${month.labelEn} ${month.year}</span>
       </footer>
     </main>
@@ -531,6 +626,13 @@ async function render() {
     const sample = months[months.length - 1] || LATEST;
     const colors = await ensurePalette(`index-${year}`, sample.tracks);
     if (parseRoute().name === "report-index") field.setPalette(colors);
+  } else if (route.name === "star") {
+    const year = route.year || LATEST.year;
+    app.innerHTML = starView(year);
+    const months = monthsForYear(year);
+    const sample = months[months.length - 1] || LATEST;
+    const colors = await ensurePalette(`star-${year}`, sample.tracks);
+    if (parseRoute().name === "star") field.setPalette(colors);
   } else {
     app.innerHTML = homeView();
     requestAnimationFrame(fitMast);

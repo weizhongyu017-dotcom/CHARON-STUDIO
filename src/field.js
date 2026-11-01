@@ -164,6 +164,8 @@ export function startField(canvas) {
 
   let raf = 0;
   const t0 = performance.now();
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let paused = document.hidden;
 
   const resize = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -174,33 +176,75 @@ export function startField(canvas) {
   resize();
   window.addEventListener("resize", resize);
 
-  const tick = (now) => {
+  const paint = (now) => {
     mouse.x += (mouse.tx - mouse.x) * 0.04;
     mouse.y += (mouse.ty - mouse.y) * 0.04;
     modeT += (mode - modeT) * 0.04;
     for (let i = 0; i < 4; i++) current[i] = lerp3(current[i], target[i], 0.035);
     applyUniforms();
     gl.uniform2f(uRes, canvas.width, canvas.height);
-    gl.uniform1f(uTime, (now - t0) / 1000);
+    const time = reducedMotion.matches ? 0 : (now - t0) / 1000;
+    gl.uniform1f(uTime, time);
     gl.uniform2f(uMouse, mouse.x, mouse.y);
     gl.uniform1f(uMode, modeT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  };
+
+  const tick = (now) => {
+    paint(now);
+    if (!paused && !reducedMotion.matches) {
+      raf = requestAnimationFrame(tick);
+    } else {
+      raf = 0;
+    }
+  };
+
+  const start = () => {
+    if (raf || paused) return;
     raf = requestAnimationFrame(tick);
   };
-  raf = requestAnimationFrame(tick);
+
+  const stop = () => {
+    cancelAnimationFrame(raf);
+    raf = 0;
+  };
+
+  const onVisibility = () => {
+    paused = document.hidden;
+    if (paused) stop();
+    else start();
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+
+  const onMotionChange = () => {
+    stop();
+    paint(performance.now());
+    if (!reducedMotion.matches) start();
+  };
+  if (reducedMotion.addEventListener) {
+    reducedMotion.addEventListener("change", onMotionChange);
+  } else if (reducedMotion.addListener) {
+    reducedMotion.addListener(onMotionChange);
+  }
+
+  paint(performance.now());
+  if (!reducedMotion.matches && !paused) start();
 
   return {
     setPalette(colors) {
       if (!colors || colors.length < 4) return;
       target = colors.map((c) => [...c]);
+      if (reducedMotion.matches || paused) paint(performance.now());
     },
     setMode(next) {
       mode = next ? 1 : 0;
+      if (reducedMotion.matches || paused) paint(performance.now());
     },
     destroy() {
-      cancelAnimationFrame(raf);
+      stop();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisibility);
     },
   };
 }
