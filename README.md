@@ -56,10 +56,12 @@ CHARON STUDIO/
 
 ## 路由
 
-- `#/` 首页（WebGL field + MONTHLY NEWS）
+- `#/` 首页（WebGL field + 最新一条 MONTHLY NEWS）
+- `#/monthly-news` MONTHLY NEWS 列表
+- `#/monthly-news/:id` 单条新闻详情
 - `#/monthly-report` 最新年总览
 - `#/monthly-report/2024` 指定年总览
 - `#/monthly-report/2024/03` 单月 FAV + Monthly Star
 - `#/monthly-report/star` / `#/monthly-report/star/2024` Monthly Star 档案
 
-首页 MONTHLY NEWS 由 `src/data/news.js` 的 `monthlyNewsIds` 顺序决定（可继续追加条目）。
+`src/data/news.js` 的 `monthlyNewsIds` 为最新优先；首页只展示第一条。

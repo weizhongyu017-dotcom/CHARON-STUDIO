@@ -22,7 +22,12 @@ const CURRENT_FAV = LATEST?.tracks?.[0] || null;
 const MONTHLY_NEWS = monthlyNewsIds
   .map((id) => newsItems[id])
   .filter(Boolean);
+const LATEST_NEWS = MONTHLY_NEWS[0] || null;
 const YEAR_LIST = YEARS.map((y) => y.year);
+
+function findNews(id) {
+  return newsItems[id] || null;
+}
 
 const paletteCache = new Map();
 
@@ -134,6 +139,13 @@ function starMonthBlock(month, top) {
 function parseRoute() {
   const p = path();
   if (p === "/" || p === "") return { name: "home" };
+  const newsDetail = p.match(/^\/monthly-news\/([^/]+)$/);
+  if (newsDetail) {
+    return { name: "news-detail", id: decodeURIComponent(newsDetail[1]) };
+  }
+  if (p === "/monthly-news" || p === "/monthly-news/") {
+    return { name: "news-index" };
+  }
   if (p === "/monthly-report" || p === "/monthly-report/") {
     return { name: "report-index", year: LATEST.year };
   }
@@ -167,6 +179,7 @@ function header(page) {
       <a class="wordmark" href="#/" aria-label="CHARON STUDIO home">CHARON <i></i> <span>studio</span></a>
       <nav class="nav-cols" aria-label="Primary">
         <ul class="nav-list">
+          <li><a href="#/monthly-news" class="${page === "news" ? "is-active" : ""}">Monthly News</a></li>
           <li><a href="#/monthly-report" class="${page === "report" ? "is-active" : ""}">Monthly Report</a></li>
           <li><a href="#/monthly-report/star" class="${page === "star" ? "is-active" : ""}">Star</a></li>
         </ul>
@@ -305,12 +318,80 @@ function newsItemView(item, index) {
 }
 
 function homeNewsView() {
-  if (!MONTHLY_NEWS.length) return "";
-  const panels = MONTHLY_NEWS.map((item, i) => newsItemView(item, i)).join("");
+  if (!LATEST_NEWS) return "";
   return `
-    <section class="monthly-news" aria-label="Monthly News">
-      ${panels}
+    <section class="monthly-news" aria-label="Latest Monthly News">
+      ${newsItemView(LATEST_NEWS, 0)}
+      <div class="news-home-more">
+        <a class="archive-latest" href="#/monthly-news">All Monthly News →</a>
+      </div>
     </section>
+  `;
+}
+
+function newsIndexView() {
+  document.title = "MONTHLY NEWS — CHARON STUDIO";
+  document.body.dataset.page = "news";
+  field.setMode(1);
+  field.setPalette(paletteCache.get("home") || HOME_PALETTE);
+
+  const cards = MONTHLY_NEWS.map((item, i) => {
+    const thumb =
+      item.image ||
+      (item.type === "track" ? CURRENT_FAV?.cover : "") ||
+      "";
+    const blurb = [item.subtitle, item.venue || item.note].filter(Boolean).join(" · ");
+    return `
+      <a class="news-card" href="#/monthly-news/${encodeURIComponent(item.id)}">
+        <div class="news-card-cover">
+          ${
+            thumb
+              ? `<img src="${escapeAttr(item.lettered ? thumb : coverUrl(thumb))}" alt="${escapeAttr(item.title)} cover" loading="lazy" />`
+              : `<div class="news-card-fallback" aria-hidden="true"></div>`
+          }
+        </div>
+        <div class="news-card-meta">
+          <p class="kicker">${escapeHtml(item.kicker || `News ‣ ${pad(i + 1)}`)}</p>
+          <p class="news-card-date">${escapeHtml(item.date || "")}</p>
+          <h2>${escapeHtml(item.title)}</h2>
+          <p class="track-meta">${escapeHtml(item.titleEn || "")}</p>
+          <p class="track-meta">${escapeHtml(blurb)}</p>
+        </div>
+      </a>
+    `;
+  }).join("");
+
+  return `
+    ${header("news")}
+    <main class="report news-index">
+      <div class="archive-lead">
+        <p class="kicker">Monthly News</p>
+        <p class="archive-lead-sub">${MONTHLY_NEWS.length} dispatches</p>
+      </div>
+      <section class="month-grid news-grid">${cards}</section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>News archive</span>
+      </footer>
+    </main>
+  `;
+}
+
+function newsDetailView(item) {
+  document.title = `${item.title} — MONTHLY NEWS — CHARON STUDIO`;
+  document.body.dataset.page = "news";
+  field.setMode(1);
+  field.setPalette(paletteCache.get("home") || HOME_PALETTE);
+
+  return `
+    ${header("news")}
+    <main class="news-detail">
+      <div class="news-detail-bar">
+        <a class="archive-latest" href="#/monthly-news">← All news</a>
+        <p class="kicker">${escapeHtml(item.date || "")}</p>
+      </div>
+      ${newsItemView(item, 0)}
+    </main>
   `;
 }
 
@@ -327,8 +408,8 @@ function homeView() {
     <main class="home-shell">
       <section class="home home-hero">
         <h1 class="home-mast" aria-label="CHARON STUDIO">${letters.join("")}</h1>
-        <p class="home-scroll-hint" aria-hidden="true">Scroll ‣ Monthly News</p>
-        <a class="home-now-jump" href="#now">News ↓</a>
+        <p class="home-scroll-hint" aria-hidden="true">Scroll ‣ Latest</p>
+        <a class="home-now-jump" href="#now">Latest ↓</a>
       </section>
       ${homeNewsView()}
     </main>
@@ -657,6 +738,19 @@ async function render() {
     const sample = months[months.length - 1] || LATEST;
     const colors = await ensurePalette(`star-${year}`, sample.tracks);
     if (parseRoute().name === "star") field.setPalette(colors);
+  } else if (route.name === "news-index") {
+    app.innerHTML = newsIndexView();
+    const colors = await ensureHomePalette();
+    if (parseRoute().name === "news-index") field.setPalette(colors);
+  } else if (route.name === "news-detail") {
+    const item = findNews(route.id);
+    if (!item || !monthlyNewsIds.includes(item.id)) {
+      location.hash = "#/monthly-news";
+      return;
+    }
+    app.innerHTML = newsDetailView(item);
+    const colors = await ensureHomePalette();
+    if (parseRoute().name === "news-detail") field.setPalette(colors);
   } else {
     app.innerHTML = homeView();
     requestAnimationFrame(fitMast);

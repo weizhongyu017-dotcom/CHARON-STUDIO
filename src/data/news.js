@@ -1,27 +1,13 @@
 /**
- * Home MONTHLY NEWS layer.
- * `monthlyNewsIds` order = scroll order on the home page (newest editorial first).
+ * MONTHLY NEWS archive.
+ * `monthlyNewsIds` order = newest first (home shows only [0]).
  * Types: "poster" | "track" | "release"
  */
 export const newsItems = {
-  "shan-yichun-wuxi-2026": {
-    id: "shan-yichun-wuxi-2026",
-    type: "poster",
-    kicker: "Monthly News ‣ 01 · Live",
-    title: "单依纯",
-    titleEn: "SHAN YICHUN",
-    subtitle: "无锡站",
-    date: "2026.10.31",
-    venue: "无锡奥林匹克体育中心",
-    venueEn: "Wuxi Olympic Sports Center",
-    image: "./src/media/shan-yichun-live.jpg",
-    note: "Concert night",
-    objectPosition: "28% 12%",
-  },
   "gracie-abrams-dfh-deluxe-2026": {
     id: "gracie-abrams-dfh-deluxe-2026",
     type: "poster",
-    kicker: "Monthly News ‣ 02 · Release",
+    kicker: "Monthly News ‣ Release",
     title: "Daughter From Hell",
     titleEn: "(Deluxe)",
     subtitle: "Gracie Abrams",
@@ -33,6 +19,20 @@ export const newsItems = {
     objectPosition: "50% 50%",
     tone: "crimson",
     lettered: true,
+  },
+  "shan-yichun-wuxi-2026": {
+    id: "shan-yichun-wuxi-2026",
+    type: "poster",
+    kicker: "Monthly News ‣ Live",
+    title: "单依纯",
+    titleEn: "SHAN YICHUN",
+    subtitle: "无锡站",
+    date: "2026.10.31",
+    venue: "无锡奥林匹克体育中心",
+    venueEn: "Wuxi Olympic Sports Center",
+    image: "./src/media/shan-yichun-live.jpg",
+    note: "Concert night",
+    objectPosition: "28% 12%",
   },
   "monthly-best-track": {
     id: "monthly-best-track",
@@ -48,11 +48,8 @@ export const newsItems = {
   },
 };
 
-/** Ordered MONTHLY NEWS feed shown under the home mast. */
+/** Newest-first feed. Home teaser = first item only. */
 export const monthlyNewsIds = [
-  "shan-yichun-wuxi-2026",
   "gracie-abrams-dfh-deluxe-2026",
+  "shan-yichun-wuxi-2026",
 ];
-
-/** Legacy single-panel switch (unused when monthlyNewsIds is set). */
-export const activeNewsId = monthlyNewsIds[0];
