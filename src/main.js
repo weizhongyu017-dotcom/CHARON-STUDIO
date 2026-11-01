@@ -1,18 +1,18 @@
-import { startField } from "./field.js?v=37";
+import { startField } from "./field.js?v=38";
 import {
   HOME_PALETTE,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=37";
+} from "./palette.js?v=38";
 import {
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js?v=37";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=37";
+} from "./data/catalog.js?v=38";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=38";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
@@ -226,12 +226,9 @@ function newsPosterView(item, opts = {}) {
     ? ` style="--news-pos: ${escapeAttr(item.objectPosition)}"`
     : "";
   const anchor = opts.first ? ' id="now"' : "";
-  return `
-    <article${anchor} class="home-news home-news-poster${tone}" aria-label="${escapeAttr(item.kicker || "Monthly News")}">
-      <div class="news-poster-media"${pos}>
-        <img src="${escapeAttr(item.image)}" alt="${escapeAttr(alt)}" loading="${opts.first ? "eager" : "lazy"}" />
-        <div class="news-poster-veil" aria-hidden="true"></div>
-      </div>
+  const copy = item.lettered
+    ? ""
+    : `
       <div class="news-poster-copy">
         <p class="kicker">${escapeHtml(item.kicker)}</p>
         <p class="news-poster-date">${escapeHtml(item.date)}</p>
@@ -246,6 +243,14 @@ function newsPosterView(item, opts = {}) {
         </div>
         <p class="news-poster-note">${escapeHtml(item.note || "")}</p>
       </div>
+    `;
+  return `
+    <article${anchor} class="home-news home-news-poster${tone}" aria-label="${escapeAttr(item.kicker || "Monthly News")}">
+      <div class="news-poster-media"${pos}>
+        <img src="${escapeAttr(item.image)}" alt="${escapeAttr(alt)}" loading="${opts.first ? "eager" : "lazy"}" />
+        <div class="news-poster-veil" aria-hidden="true"></div>
+      </div>
+      ${copy}
     </article>
   `;
 }
