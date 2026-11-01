@@ -217,6 +217,7 @@ button:focus-visible,
 }
 
 .news-poster-media {
+  --news-pos: 28% 12%;
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -229,7 +230,7 @@ button:focus-visible,
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 28% 12%;
+  object-position: var(--news-pos);
   transform: scale(1.03);
 }
 
@@ -246,6 +247,36 @@ button:focus-visible,
     ),
     linear-gradient(0deg, rgba(5, 7, 13, 0.5) 0%, transparent 42%);
   pointer-events: none;
+}
+
+.home-news-poster.is-crimson {
+  background: #1a0508;
+}
+
+.home-news-poster.is-crimson .news-poster-veil {
+  background:
+    linear-gradient(
+      100deg,
+      rgba(26, 5, 8, 0.08) 0%,
+      rgba(26, 5, 8, 0.18) 34%,
+      rgba(26, 5, 8, 0.72) 62%,
+      rgba(26, 5, 8, 0.94) 100%
+    ),
+    linear-gradient(0deg, rgba(26, 5, 8, 0.45) 0%, transparent 42%);
+}
+
+.home-news-poster.is-crimson .news-poster-title-zh {
+  letter-spacing: -0.02em;
+  font-family: var(--serif);
+  font-weight: 400;
+}
+
+.home-news-poster.is-lettered .news-poster-copy {
+  display: none;
+}
+
+.home-news-poster.is-lettered .news-poster-veil {
+  opacity: 0.12;
 }
 
 .news-poster-copy {

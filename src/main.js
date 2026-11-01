@@ -12,14 +12,16 @@ import {
   findMonth,
   monthsForYear,
 } from "./data/catalog.js";
-import { activeNewsId, newsItems } from "./data/news.js";
+import { monthlyNewsIds, newsItems } from "./data/news.js";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
 
 const LATEST = LATEST_MONTH;
 const CURRENT_FAV = LATEST?.tracks?.[0] || null;
-const ACTIVE_NEWS = newsItems[activeNewsId] || newsItems["monthly-best-track"];
+const MONTHLY_NEWS = monthlyNewsIds
+  .map((id) => newsItems[id])
+  .filter(Boolean);
 const YEAR_LIST = YEARS.map((y) => y.year);
 
 const paletteCache = new Map();
@@ -198,14 +200,22 @@ function archiveSwitcher(activeYear, activeMonthId) {
   `;
 }
 
-function newsPosterView(item) {
+function newsPosterView(item, opts = {}) {
   const alt = [item.title, item.subtitle, item.venue, item.date].filter(Boolean).join(" · ");
-  return `
-    <section id="now" class="home-news home-news-poster" aria-label="Now">
-      <div class="news-poster-media">
-        <img src="${escapeAttr(item.image)}" alt="${escapeAttr(alt)}" />
-        <div class="news-poster-veil" aria-hidden="true"></div>
-      </div>
+  const tone = [
+    item.tone === "crimson" ? "is-crimson" : "",
+    item.lettered ? "is-lettered" : "",
+  ]
+    .filter(Boolean)
+    .map((c) => ` ${c}`)
+    .join("");
+  const pos = item.objectPosition
+    ? ` style="--news-pos: ${escapeAttr(item.objectPosition)}"`
+    : "";
+  const anchor = opts.first ? ' id="now"' : "";
+  const copy = item.lettered
+    ? ""
+    : `
       <div class="news-poster-copy">
         <p class="kicker">${escapeHtml(item.kicker)}</p>
         <p class="news-poster-date">${escapeHtml(item.date)}</p>
@@ -215,23 +225,32 @@ function newsPosterView(item) {
         </h2>
         <p class="news-poster-sub">${escapeHtml(item.subtitle || "")}</p>
         <div class="news-poster-venue">
-          <span>${escapeHtml(item.venue)}</span>
+          <span>${escapeHtml(item.venue || "")}</span>
           <span>${escapeHtml(item.venueEn || "")}</span>
         </div>
         <p class="news-poster-note">${escapeHtml(item.note || "")}</p>
       </div>
-    </section>
+    `;
+  return `
+    <article${anchor} class="home-news home-news-poster${tone}" aria-label="${escapeAttr(item.kicker || "Monthly News")}">
+      <div class="news-poster-media"${pos}>
+        <img src="${escapeAttr(item.image)}" alt="${escapeAttr(alt)}" />
+        <div class="news-poster-veil" aria-hidden="true"></div>
+      </div>
+      ${copy}
+    </article>
   `;
 }
 
-function newsTrackView(item) {
+function newsTrackView(item, opts = {}) {
   const track = CURRENT_FAV;
+  const anchor = opts.first ? ' id="now"' : "";
   if (!track) {
     return `
-      <section class="home-news home-news-track" aria-label="Now">
+      <article${anchor} class="home-news home-news-track" aria-label="Monthly News">
         <p class="kicker">${escapeHtml(item.kicker)}</p>
         <p class="index-sub">No monthly best track yet.</p>
-      </section>
+      </article>
     `;
   }
   const rating = item.rating == null ? "—" : String(item.rating);
@@ -247,7 +266,7 @@ function newsTrackView(item) {
     .join("");
 
   return `
-    <section id="now" class="home-news home-news-track" aria-label="Now">
+    <article${anchor} class="home-news home-news-track" aria-label="Monthly News">
       <div class="news-track-grid">
         <figure class="news-track-cover">
           <img src="${coverUrl(track.cover, 800)}" alt="${escapeAttr(track.title)} cover" />
@@ -266,28 +285,38 @@ function newsTrackView(item) {
           <a class="news-track-link" href="#/monthly-report/${LATEST.year}/${pad(LATEST.month)}">Open monthly report →</a>
         </div>
       </div>
-    </section>
+    </article>
   `;
 }
 
-function newsReleaseView(item) {
+function newsReleaseView(item, opts = {}) {
+  const anchor = opts.first ? ' id="now"' : "";
   return `
-    <section id="now" class="home-news home-news-release" aria-label="Now">
+    <article${anchor} class="home-news home-news-release" aria-label="Monthly News">
       <p class="kicker">${escapeHtml(item.kicker || "Release ‣ Soon")}</p>
       <h2 class="news-release-title">${escapeHtml(item.title || "Untitled")}</h2>
       <p class="news-release-meta">${escapeHtml(item.artist || "")}</p>
       <p class="news-release-meta">${escapeHtml(item.date || "")}</p>
       <p class="index-sub">${escapeHtml(item.blurb || "Details coming soon.")}</p>
-    </section>
+    </article>
   `;
 }
 
+function newsItemView(item, index) {
+  const opts = { first: index === 0 };
+  if (item.type === "poster") return newsPosterView(item, opts);
+  if (item.type === "release") return newsReleaseView(item, opts);
+  return newsTrackView(item, opts);
+}
+
 function homeNewsView() {
-  const item = ACTIVE_NEWS;
-  if (!item) return "";
-  if (item.type === "poster") return newsPosterView(item);
-  if (item.type === "release") return newsReleaseView(item);
-  return newsTrackView(item);
+  if (!MONTHLY_NEWS.length) return "";
+  const panels = MONTHLY_NEWS.map((item, i) => newsItemView(item, i)).join("");
+  return `
+    <section class="monthly-news" aria-label="Monthly News">
+      ${panels}
+    </section>
+  `;
 }
 
 function homeView() {
@@ -303,8 +332,8 @@ function homeView() {
     <main class="home-shell">
       <section class="home home-hero">
         <h1 class="home-mast" aria-label="CHARON STUDIO">${letters.join("")}</h1>
-        <p class="home-scroll-hint" aria-hidden="true">Scroll ‣ Now</p>
-        <a class="home-now-jump" href="#now">Now ↓</a>
+        <p class="home-scroll-hint" aria-hidden="true">Scroll ‣ Monthly News</p>
+        <a class="home-now-jump" href="#now">News ↓</a>
       </section>
       ${homeNewsView()}
     </main>
