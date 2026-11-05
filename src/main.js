@@ -1,19 +1,19 @@
-import { startField } from "./field.js?v=39";
+import { startField } from "./field.js?v=40";
 import {
   HOME_PALETTE,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=39";
+} from "./palette.js?v=40";
 import {
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js?v=39";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=39";
-import { reviewIds, reviewItems } from "./data/reviews.js?v=39";
+} from "./data/catalog.js?v=40";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=40";
+import { reviewIds, reviewItems } from "./data/reviews.js?v=40";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
@@ -489,24 +489,54 @@ function reviewBody(item) {
   `;
 }
 
+function rgbCss(rgb, alpha = 1) {
+  const r = Math.round((rgb?.[0] || 0) * 255);
+  const g = Math.round((rgb?.[1] || 0) * 255);
+  const b = Math.round((rgb?.[2] || 0) * 255);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function applyReviewTheme(colors) {
+  const page = document.querySelector(".review-page");
+  if (!page || !colors || colors.length < 4) return;
+  page.style.setProperty("--rv0", rgbCss(colors[0], 1));
+  page.style.setProperty("--rv1", rgbCss(colors[1], 1));
+  page.style.setProperty("--rv2", rgbCss(colors[2], 1));
+  page.style.setProperty("--rv3", rgbCss(colors[3], 1));
+  page.style.setProperty("--rv-glow", rgbCss(colors[3], 0.34));
+  page.style.setProperty("--rv-panel", rgbCss(colors[0], 0.28));
+  page.style.setProperty("--rv-line", rgbCss(colors[2], 0.28));
+  page.style.setProperty("--rv-ring", rgbCss(colors[3], 0.85));
+}
+
+async function ensureReviewPalette(item) {
+  const key = `review-${item.id}`;
+  if (paletteCache.has(key)) return paletteCache.get(key);
+  const colors = await paletteFromHomeTrack({ cover: item.cover });
+  paletteCache.set(key, colors);
+  return colors;
+}
+
 function reviewDetailView(item) {
   document.title = `${item.title} — NEW ALBUM REVIEW — CHARON STUDIO`;
   document.body.dataset.page = "review";
   field.setMode(1);
-  field.setPalette(paletteCache.get("home") || HOME_PALETTE);
+  const cached = paletteCache.get(`review-${item.id}`);
+  field.setPalette(cached || HOME_PALETTE);
 
   return `
     ${header("review")}
     <main class="review-page">
-      <div class="review-sheet">
+      <div class="review-aura" aria-hidden="true"></div>
+      <div class="review-content">
         ${reviewHero(item)}
         ${reviewTracks(item)}
         ${reviewBody(item)}
+        <footer class="site-footer review-footer">
+          <span>CHARON STUDIO</span>
+          <a class="archive-latest" href="#/album-review">All reviews →</a>
+        </footer>
       </div>
-      <footer class="site-footer review-footer">
-        <span>CHARON STUDIO</span>
-        <a class="archive-latest" href="#/album-review">All reviews →</a>
-      </footer>
     </main>
   `;
 }
@@ -916,9 +946,13 @@ async function render() {
     if (parseRoute().name === "news-detail") field.setPalette(colors);
   } else if (route.name === "review-index") {
     app.innerHTML = reviewIndexView();
-    const colors = await ensureHomePalette();
+    const target = LATEST_REVIEW || ALBUM_REVIEWS[0];
+    const colors = target
+      ? await ensureReviewPalette(target)
+      : await ensureHomePalette();
     if (parseRoute().name === "review-index" || parseRoute().name === "review-detail") {
       field.setPalette(colors);
+      applyReviewTheme(colors);
     }
   } else if (route.name === "review-detail") {
     const item = findReview(route.id);
@@ -927,8 +961,11 @@ async function render() {
       return;
     }
     app.innerHTML = reviewDetailView(item);
-    const colors = await ensureHomePalette();
-    if (parseRoute().name === "review-detail") field.setPalette(colors);
+    const colors = await ensureReviewPalette(item);
+    if (parseRoute().name === "review-detail") {
+      field.setPalette(colors);
+      applyReviewTheme(colors);
+    }
   } else {
     app.innerHTML = homeView();
     requestAnimationFrame(fitMast);
