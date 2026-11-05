@@ -192,25 +192,30 @@ export async function paletteFromHomeTrack(track) {
   ];
 }
 
+function deepenMore(rgb) {
+  return [
+    Math.max(0.03, Math.min(0.55, rgb[0] * 0.38 + 0.03)),
+    Math.max(0.03, Math.min(0.5, rgb[1] * 0.32 + 0.025)),
+    Math.max(0.04, Math.min(0.55, rgb[2] * 0.38 + 0.035)),
+  ];
+}
+
 /**
- * Album review field: complementary (contrast) field from cover,
- * with a residual cover accent for rings / highlights.
+ * Album review field: same cover chroma as before, pulled darker/nocturnal.
  */
-export async function paletteFromCoverContrast(coverUrl) {
+export async function paletteFromCoverDeep(coverUrl) {
   const base = HOME_PALETTE.map((c) => [...c]);
   const sampled = coverUrl ? await sampleCover(coverUrl) : null;
-  const accent = sampled || [0.55, 0.34, 0.28];
-  const contra = complement(accent, 172);
-  const contraShift = complement(accent, 148);
-  const deepContra = deepen(contra);
-  const midContra = boost(contraShift, 0.14);
-  const hotContra = boost(contra, 0.26);
-  const coverHot = boost(accent, 0.18);
+  const accent = sampled || [0.2, 0.35, 0.55];
+  const deep = deepenMore(accent);
+  const mid = deepen(mix3(accent, deep, 0.45));
+  const cool = deepenMore(mix3(accent, [accent[2], accent[0], accent[1]], 0.28));
+  const hot = mix3(deepen(accent), boost(accent, 0.08), 0.35);
 
   return [
-    mix3(base[0], deepContra, 0.88),
-    mix3(base[1], midContra, 0.84),
-    mix3(base[2], hotContra, 0.8),
-    mix3(base[3], coverHot, 0.55),
+    mix3(base[0], deep, 0.9),
+    mix3(base[1], mid, 0.86),
+    mix3(base[2], cool, 0.82),
+    mix3(base[3], hot, 0.78),
   ];
 }
