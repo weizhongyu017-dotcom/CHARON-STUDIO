@@ -1,19 +1,19 @@
-import { startField } from "./field.js?v=42";
+import { startField } from "./field.js?v=43";
 import {
   HOME_PALETTE,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=42";
+} from "./palette.js?v=43";
 import {
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js?v=42";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=42";
-import { reviewIds, reviewItems } from "./data/reviews.js?v=42";
+} from "./data/catalog.js?v=43";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=43";
+import { reviewIds, reviewItems } from "./data/reviews.js?v=43";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
