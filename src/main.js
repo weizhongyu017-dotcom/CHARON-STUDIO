@@ -1,19 +1,19 @@
-import { startField } from "./field.js?v=40";
+import { startField } from "./field.js?v=41";
 import {
   HOME_PALETTE,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=40";
+} from "./palette.js?v=41";
 import {
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js?v=40";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=40";
-import { reviewIds, reviewItems } from "./data/reviews.js?v=40";
+} from "./data/catalog.js?v=41";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=41";
+import { reviewIds, reviewItems } from "./data/reviews.js?v=41";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
@@ -432,21 +432,33 @@ function formatScore(score) {
 function reviewHero(item) {
   return `
     <section class="review-hero" aria-label="Album overview">
-      <div class="review-hero-copy">
-        <p class="review-kicker">${escapeHtml(item.kicker || "Track Albums")}</p>
-        <h1 class="review-title">${escapeHtml(item.title)}</h1>
-        <p class="review-artist">${escapeHtml(item.artist)}</p>
-        <p class="review-year">${escapeHtml(String(item.year || ""))}</p>
-      </div>
-      <figure class="review-cover">
-        <img src="${escapeAttr(item.cover)}" alt="${escapeAttr(item.title)} cover" />
-      </figure>
-      <div class="review-score-wrap" aria-label="Album score ${formatScore(item.score)}">
-        <span class="review-score-ring">${formatScore(item.score)}</span>
+      <div class="review-hero-grid">
+        <div class="review-hero-copy">
+          <p class="review-kicker">${escapeHtml(item.kicker || "Track Albums")}</p>
+          <h1 class="review-title">${escapeHtml(item.title)}</h1>
+          <p class="review-artist">${escapeHtml(item.artist)}</p>
+          <p class="review-year">${escapeHtml(String(item.year || ""))}</p>
+        </div>
+        <figure class="review-cover">
+          <img src="${escapeAttr(item.cover)}" alt="${escapeAttr(item.title)} cover" />
+        </figure>
+        <div class="review-score-wrap" aria-label="Album score ${formatScore(item.score)}">
+          <span class="review-score-ring">${formatScore(item.score)}</span>
+        </div>
       </div>
       <p class="review-by">By ${escapeHtml(item.by || "@charon")}</p>
+      <button type="button" class="review-scroll-hint" data-scroll-to="review-scores">Scroll ‣ Track Scores</button>
     </section>
   `;
+}
+
+function bindReviewScroll() {
+  document.querySelectorAll("[data-scroll-to]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-scroll-to");
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
 }
 
 function reviewTracks(item) {
@@ -466,7 +478,7 @@ function reviewTracks(item) {
     .join("");
 
   return `
-    <section class="review-scores" aria-label="Track scores">
+    <section id="review-scores" class="review-scores" aria-label="Track scores">
       <header class="review-section-head">
         <h2>Track Scores</h2>
       </header>
@@ -528,8 +540,8 @@ function reviewDetailView(item) {
     ${header("review")}
     <main class="review-page">
       <div class="review-aura" aria-hidden="true"></div>
+      ${reviewHero(item)}
       <div class="review-content">
-        ${reviewHero(item)}
         ${reviewTracks(item)}
         ${reviewBody(item)}
         <footer class="site-footer review-footer">
@@ -946,6 +958,7 @@ async function render() {
     if (parseRoute().name === "news-detail") field.setPalette(colors);
   } else if (route.name === "review-index") {
     app.innerHTML = reviewIndexView();
+    bindReviewScroll();
     const target = LATEST_REVIEW || ALBUM_REVIEWS[0];
     const colors = target
       ? await ensureReviewPalette(target)
@@ -961,6 +974,7 @@ async function render() {
       return;
     }
     app.innerHTML = reviewDetailView(item);
+    bindReviewScroll();
     const colors = await ensureReviewPalette(item);
     if (parseRoute().name === "review-detail") {
       field.setPalette(colors);
