@@ -1,19 +1,20 @@
-import { startField } from "./field.js?v=43";
+import { startField } from "./field.js?v=44";
 import {
   HOME_PALETTE,
+  paletteFromCoverContrast,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=43";
+} from "./palette.js?v=44";
 import {
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js?v=43";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=43";
-import { reviewIds, reviewItems } from "./data/reviews.js?v=43";
+} from "./data/catalog.js?v=44";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=44";
+import { reviewIds, reviewItems } from "./data/reviews.js?v=44";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
@@ -515,16 +516,17 @@ function applyReviewTheme(colors) {
   page.style.setProperty("--rv1", rgbCss(colors[1], 1));
   page.style.setProperty("--rv2", rgbCss(colors[2], 1));
   page.style.setProperty("--rv3", rgbCss(colors[3], 1));
-  page.style.setProperty("--rv-glow", rgbCss(colors[3], 0.34));
-  page.style.setProperty("--rv-panel", rgbCss(colors[0], 0.28));
-  page.style.setProperty("--rv-line", rgbCss(colors[2], 0.28));
-  page.style.setProperty("--rv-ring", rgbCss(colors[3], 0.85));
+  // Field uses contrast hues; keep ring/glow warmer from residual cover accent.
+  page.style.setProperty("--rv-glow", rgbCss(colors[2], 0.4));
+  page.style.setProperty("--rv-panel", rgbCss(colors[0], 0.36));
+  page.style.setProperty("--rv-line", rgbCss(colors[1], 0.32));
+  page.style.setProperty("--rv-ring", rgbCss(colors[3], 0.9));
 }
 
 async function ensureReviewPalette(item) {
-  const key = `review-${item.id}`;
+  const key = `review-contrast-${item.id}`;
   if (paletteCache.has(key)) return paletteCache.get(key);
-  const colors = await paletteFromHomeTrack({ cover: item.cover });
+  const colors = await paletteFromCoverContrast(item.cover);
   paletteCache.set(key, colors);
   return colors;
 }

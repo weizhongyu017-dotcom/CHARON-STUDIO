@@ -1347,16 +1347,17 @@ body[data-page="review"] .field {
   --rv1: #2a1824;
   --rv2: #3d2436;
   --rv3: #c9a27e;
-  --rv-glow: rgba(201, 162, 126, 0.34);
-  --rv-panel: rgba(26, 16, 24, 0.28);
+  --rv-glow: rgba(201, 162, 126, 0.4);
+  --rv-panel: rgba(26, 16, 24, 0.36);
   --rv-line: rgba(255, 255, 255, 0.16);
   --rv-ring: rgba(255, 255, 255, 0.75);
   position: relative;
   z-index: 1;
   color: #fff;
   background:
-    radial-gradient(90% 70% at 78% 18%, var(--rv-glow), transparent 58%),
-    radial-gradient(70% 55% at 12% 80%, var(--rv-panel), transparent 62%);
+    radial-gradient(95% 75% at 82% 12%, var(--rv-glow), transparent 56%),
+    radial-gradient(80% 60% at 8% 88%, var(--rv-panel), transparent 60%),
+    linear-gradient(160deg, rgba(0, 0, 0, 0.28), transparent 45%);
 }
 
 .review-aura {
@@ -1365,10 +1366,10 @@ body[data-page="review"] .field {
   inset: 0 0 auto;
   height: 100vh;
   background:
-    radial-gradient(circle at 70% 40%, var(--rv3), transparent 55%),
-    radial-gradient(circle at 30% 60%, var(--rv1), transparent 60%);
-  opacity: 0.22;
-  filter: blur(48px);
+    radial-gradient(circle at 72% 36%, var(--rv2), transparent 52%),
+    radial-gradient(circle at 24% 68%, var(--rv0), transparent 58%);
+  opacity: 0.34;
+  filter: blur(52px);
   z-index: 0;
 }
 
