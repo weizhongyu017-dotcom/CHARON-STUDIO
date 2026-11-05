@@ -59,6 +59,8 @@ CHARON STUDIO/
 - `#/` 首页（WebGL field + 最新一条 MONTHLY NEWS）
 - `#/monthly-news` MONTHLY NEWS 列表
 - `#/monthly-news/:id` 单条新闻详情
+- `#/album-review` New Album Review（专辑评分 + 曲目分 + Review）
+- `#/album-review/:id` 单张专辑评详情
 - `#/monthly-report` 最新年总览
 - `#/monthly-report/2024` 指定年总览
 - `#/monthly-report/2024/03` 单月 FAV + Monthly Star

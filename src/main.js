@@ -1,18 +1,19 @@
-import { startField } from "./field.js?v=38";
+import { startField } from "./field.js?v=39";
 import {
   HOME_PALETTE,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=38";
+} from "./palette.js?v=39";
 import {
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js?v=38";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=38";
+} from "./data/catalog.js?v=39";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=39";
+import { reviewIds, reviewItems } from "./data/reviews.js?v=39";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
@@ -23,10 +24,16 @@ const MONTHLY_NEWS = monthlyNewsIds
   .map((id) => newsItems[id])
   .filter(Boolean);
 const LATEST_NEWS = MONTHLY_NEWS[0] || null;
+const ALBUM_REVIEWS = reviewIds.map((id) => reviewItems[id]).filter(Boolean);
+const LATEST_REVIEW = ALBUM_REVIEWS[0] || null;
 const YEAR_LIST = YEARS.map((y) => y.year);
 
 function findNews(id) {
   return newsItems[id] || null;
+}
+
+function findReview(id) {
+  return reviewItems[id] || null;
 }
 
 const paletteCache = new Map();
@@ -139,6 +146,13 @@ function starMonthBlock(month, top) {
 function parseRoute() {
   const p = path();
   if (p === "/" || p === "") return { name: "home" };
+  const reviewDetail = p.match(/^\/album-review\/([^/]+)$/);
+  if (reviewDetail) {
+    return { name: "review-detail", id: decodeURIComponent(reviewDetail[1]) };
+  }
+  if (p === "/album-review" || p === "/album-review/") {
+    return { name: "review-index" };
+  }
   const newsDetail = p.match(/^\/monthly-news\/([^/]+)$/);
   if (newsDetail) {
     return { name: "news-detail", id: decodeURIComponent(newsDetail[1]) };
@@ -180,6 +194,7 @@ function header(page) {
       <nav class="nav-cols" aria-label="Primary">
         <ul class="nav-list">
           <li><a href="#/monthly-news" class="${page === "news" ? "is-active" : ""}">Monthly News</a></li>
+          <li><a href="#/album-review" class="${page === "review" ? "is-active" : ""}">New Album Review</a></li>
           <li><a href="#/monthly-report" class="${page === "report" ? "is-active" : ""}">Monthly Report</a></li>
           <li><a href="#/monthly-report/star" class="${page === "star" ? "is-active" : ""}">Star</a></li>
         </ul>
@@ -404,6 +419,136 @@ function newsDetailView(item) {
         <p class="kicker">${escapeHtml(item.date || "")}</p>
       </div>
       ${newsItemView(item, 0)}
+    </main>
+  `;
+}
+
+function formatScore(score) {
+  const n = Number(score);
+  if (Number.isNaN(n)) return "—";
+  return n.toFixed(1);
+}
+
+function reviewHero(item) {
+  return `
+    <section class="review-hero" aria-label="Album overview">
+      <div class="review-hero-copy">
+        <p class="review-kicker">${escapeHtml(item.kicker || "Track Albums")}</p>
+        <h1 class="review-title">${escapeHtml(item.title)}</h1>
+        <p class="review-artist">${escapeHtml(item.artist)}</p>
+        <p class="review-year">${escapeHtml(String(item.year || ""))}</p>
+      </div>
+      <figure class="review-cover">
+        <img src="${escapeAttr(item.cover)}" alt="${escapeAttr(item.title)} cover" />
+      </figure>
+      <div class="review-score-wrap" aria-label="Album score ${formatScore(item.score)}">
+        <span class="review-score-ring">${formatScore(item.score)}</span>
+      </div>
+      <p class="review-by">By ${escapeHtml(item.by || "@charon")}</p>
+    </section>
+  `;
+}
+
+function reviewTracks(item) {
+  const rows = (item.tracks || [])
+    .map(
+      (t) => `
+      <li class="review-track-row">
+        <span class="review-track-num">${pad(t.rank)}</span>
+        <div class="review-track-main">
+          <p class="review-track-title">${escapeHtml(t.title)}</p>
+          <p class="review-track-artist">${escapeHtml(t.artist)}</p>
+        </div>
+        <span class="review-track-score" aria-label="Score ${formatScore(t.score)}">${formatScore(t.score)}</span>
+      </li>
+    `
+    )
+    .join("");
+
+  return `
+    <section class="review-scores" aria-label="Track scores">
+      <header class="review-section-head">
+        <h2>Track Scores</h2>
+      </header>
+      <ol class="review-track-list">${rows}</ol>
+    </section>
+  `;
+}
+
+function reviewBody(item) {
+  const text = item.review || "";
+  const limit = item.reviewLimit || 1000;
+  return `
+    <section class="review-body" aria-label="Review">
+      <header class="review-section-head">
+        <h2>Review</h2>
+        <span class="review-count">${text.length}/${limit}</span>
+      </header>
+      <div class="review-text">${escapeHtml(text)}</div>
+    </section>
+  `;
+}
+
+function reviewDetailView(item) {
+  document.title = `${item.title} — NEW ALBUM REVIEW — CHARON STUDIO`;
+  document.body.dataset.page = "review";
+  field.setMode(1);
+  field.setPalette(paletteCache.get("home") || HOME_PALETTE);
+
+  return `
+    ${header("review")}
+    <main class="review-page">
+      <div class="review-sheet">
+        ${reviewHero(item)}
+        ${reviewTracks(item)}
+        ${reviewBody(item)}
+      </div>
+      <footer class="site-footer review-footer">
+        <span>CHARON STUDIO</span>
+        <a class="archive-latest" href="#/album-review">All reviews →</a>
+      </footer>
+    </main>
+  `;
+}
+
+function reviewIndexView() {
+  document.title = "NEW ALBUM REVIEW — CHARON STUDIO";
+  document.body.dataset.page = "review";
+  field.setMode(1);
+  field.setPalette(paletteCache.get("home") || HOME_PALETTE);
+
+  if (ALBUM_REVIEWS.length === 1) {
+    return reviewDetailView(ALBUM_REVIEWS[0]);
+  }
+
+  const cards = ALBUM_REVIEWS.map(
+    (item) => `
+      <a class="review-index-card" href="#/album-review/${encodeURIComponent(item.id)}">
+        <div class="review-index-cover">
+          <img src="${escapeAttr(item.cover)}" alt="${escapeAttr(item.title)} cover" loading="lazy" />
+        </div>
+        <div class="review-index-meta">
+          <p class="kicker">${escapeHtml(item.kicker || "Track Albums")}</p>
+          <h2>${escapeHtml(item.title)}</h2>
+          <p class="track-meta">${escapeHtml(item.artist)} · ${escapeHtml(String(item.year || ""))}</p>
+          <p class="review-index-score">${formatScore(item.score)}</p>
+        </div>
+      </a>
+    `
+  ).join("");
+
+  return `
+    ${header("review")}
+    <main class="report review-index">
+      <div class="archive-lead">
+        <p class="kicker">New Album Review</p>
+        <p class="archive-lead-sub">${ALBUM_REVIEWS.length} albums</p>
+      </div>
+      <section class="month-grid">${cards}</section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>Album reviews</span>
+      </footer>
     </main>
   `;
 }
@@ -769,6 +914,21 @@ async function render() {
     app.innerHTML = newsDetailView(item);
     const colors = await ensureHomePalette();
     if (parseRoute().name === "news-detail") field.setPalette(colors);
+  } else if (route.name === "review-index") {
+    app.innerHTML = reviewIndexView();
+    const colors = await ensureHomePalette();
+    if (parseRoute().name === "review-index" || parseRoute().name === "review-detail") {
+      field.setPalette(colors);
+    }
+  } else if (route.name === "review-detail") {
+    const item = findReview(route.id);
+    if (!item || !reviewIds.includes(item.id)) {
+      location.hash = "#/album-review";
+      return;
+    }
+    app.innerHTML = reviewDetailView(item);
+    const colors = await ensureHomePalette();
+    if (parseRoute().name === "review-detail") field.setPalette(colors);
   } else {
     app.innerHTML = homeView();
     requestAnimationFrame(fitMast);

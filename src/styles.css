@@ -1336,6 +1336,269 @@ button:focus-visible,
   }
 }
 
+/* —— New Album Review (paper sheet) —— */
+body[data-page="review"] .site-header .wordmark,
+body[data-page="review"] .nav-list a {
+  color: #111;
+}
+
+body[data-page="review"] .nav-list a {
+  opacity: 0.4;
+}
+
+body[data-page="review"] .nav-list a.is-active,
+body[data-page="review"] .nav-list a:hover {
+  opacity: 1;
+}
+
+body[data-page="review"] .field {
+  opacity: 0.12;
+  filter: grayscale(0.35);
+}
+
+.review-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding: 110px var(--pad) 48px;
+  color: #111;
+}
+
+.review-sheet {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  background: #fff;
+  color: #111;
+  padding: clamp(36px, 5vw, 72px) clamp(28px, 4vw, 64px) clamp(48px, 6vw, 80px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.review-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 280px) auto;
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  padding-bottom: 36px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.review-hero-copy {
+  text-align: center;
+}
+
+.review-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 18px;
+}
+
+.review-title {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(28px, 3.4vw, 48px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+}
+
+.review-artist {
+  font-size: clamp(15px, 1.1vw, 18px);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-bottom: 18px;
+}
+
+.review-year {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+.review-cover {
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #eee;
+}
+
+.review-cover img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.review-score-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 120px;
+}
+
+.review-score-ring {
+  width: clamp(88px, 10vw, 120px);
+  height: clamp(88px, 10vw, 120px);
+  border: 2px solid #111;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--serif);
+  font-size: clamp(28px, 3vw, 40px);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.review-by {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-top: 28px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+
+.review-scores,
+.review-body {
+  padding-top: 42px;
+}
+
+.review-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.review-section-head h2 {
+  font-size: clamp(22px, 2vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.review-count {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.review-track-list {
+  list-style: none;
+}
+
+.review-track-row {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.review-track-row:last-child {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.review-track-num {
+  font-size: 14px;
+  opacity: 0.55;
+}
+
+.review-track-title {
+  font-size: clamp(16px, 1.2vw, 19px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.review-track-artist {
+  margin-top: 4px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.review-track-score {
+  width: 46px;
+  height: 46px;
+  border: 1.5px solid rgba(0, 0, 0, 0.28);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.review-text {
+  min-height: 140px;
+  padding: 22px 20px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  font-size: clamp(15px, 1.1vw, 18px);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.review-footer {
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.review-footer .archive-latest {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.review-index-card {
+  display: grid;
+  gap: 14px;
+  color: #fff;
+}
+
+.review-index-cover {
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #111;
+}
+
+.review-index-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.review-index-meta h2 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(22px, 1.8vw, 32px);
+  font-weight: 400;
+  margin: 6px 0 10px;
+}
+
+.review-index-score {
+  margin-top: 12px;
+  font-family: var(--serif);
+  font-size: 28px;
+}
+
+@media (max-width: 900px) {
+  .review-hero {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .review-cover {
+    max-width: 220px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .home-mast span {
     animation: none;
