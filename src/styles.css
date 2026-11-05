@@ -1576,6 +1576,20 @@ body[data-page="review"] .field {
   letter-spacing: 0.06em;
 }
 
+.review-explicit {
+  display: inline-grid;
+  place-items: center;
+  width: 1.05em;
+  height: 1.05em;
+  margin-right: 0.45em;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  font-size: 0.62em;
+  font-weight: 700;
+  letter-spacing: 0;
+  vertical-align: 0.12em;
+  opacity: 0.75;
+}
+
 .review-track-artist {
   margin-top: 5px;
   font-size: 13px;

@@ -1,20 +1,20 @@
-import { startField } from "./field.js?v=45";
+import { startField } from "./field.js?v=46";
 import {
   HOME_PALETTE,
   paletteFromCoverDeep,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=45";
+} from "./palette.js?v=46";
 import {
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js?v=45";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=45";
-import { reviewIds, reviewItems } from "./data/reviews.js?v=45";
+} from "./data/catalog.js?v=46";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=46";
+import { reviewIds, reviewItems } from "./data/reviews.js?v=46";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
@@ -469,7 +469,7 @@ function reviewTracks(item) {
       <li class="review-track-row">
         <span class="review-track-num">${pad(t.rank)}</span>
         <div class="review-track-main">
-          <p class="review-track-title">${escapeHtml(t.title)}</p>
+          <p class="review-track-title">${t.explicit ? `<span class="review-explicit" aria-label="Explicit">E</span>` : ""}${escapeHtml(t.title)}</p>
           <p class="review-track-artist">${escapeHtml(t.artist)}</p>
         </div>
         <span class="review-track-score" aria-label="Score ${formatScore(t.score)}">${formatScore(t.score)}</span>
