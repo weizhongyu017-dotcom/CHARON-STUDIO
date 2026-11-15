@@ -112,10 +112,10 @@ export async function paletteFromTracks(tracks) {
 }
 
 export const HOME_PALETTE = [
-  [0.05, 0.1, 0.26],
-  [0.12, 0.28, 0.62],
-  [0.36, 0.62, 0.62],
-  [0.78, 0.28, 0.07],
+  [0.12, 0.18, 0.34],
+  [0.22, 0.4, 0.72],
+  [0.48, 0.7, 0.68],
+  [0.86, 0.42, 0.16],
 ];
 
 function mix3(a, b, t) {
@@ -126,7 +126,12 @@ function mix3(a, b, t) {
   ];
 }
 
-/** Home field: keep nocturnal base, blend in current month FAV.01 cover chroma. */
+/** Lift toward a clearer mid so cover chroma survives the field's dark grade. */
+function lift(rgb, amount = 0.28) {
+  return rgb.map((c) => Math.min(0.94, c * (1 - amount * 0.35) + amount * 0.72));
+}
+
+/** Home field: FAV.01 cover leads; light atmospheric veil instead of deep night. */
 export async function paletteFromHomeTrack(track) {
   const base = HOME_PALETTE.map((c) => [...c]);
   if (!track) return base;
@@ -135,18 +140,16 @@ export async function paletteFromHomeTrack(track) {
   const accent = sampled || (track.hue ? hexToRgb(track.hue) : null);
   if (!accent) return base;
 
-  const deep = deepen(accent);
-  const hot = boost(accent, 0.28);
-  const mid = boost(accent, 0.12);
-  const cool = deepen(
-    mix3(accent, [accent[2], accent[0], accent[1]], 0.35)
-  );
+  const soft = lift(accent, 0.34);
+  const mid = boost(accent, 0.22);
+  const hot = boost(accent, 0.38);
+  const cool = lift(mix3(accent, [accent[2], accent[0], accent[1]], 0.28), 0.24);
 
   return [
-    mix3(base[0], deep, 0.72),
-    mix3(base[1], mid, 0.68),
-    mix3(base[2], cool, 0.62),
-    mix3(base[3], hot, 0.78),
+    mix3(base[0], soft, 0.9),
+    mix3(base[1], mid, 0.92),
+    mix3(base[2], cool, 0.88),
+    mix3(base[3], hot, 0.94),
   ];
 }
 

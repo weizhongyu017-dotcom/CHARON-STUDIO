@@ -2,7 +2,7 @@ import { year2022 } from "./year-2022.js";
 import { year2023 } from "./year-2023.js";
 import { year2024 } from "./year-2024.js";
 import { year2025 } from "./year-2025.js";
-import { year2026 } from "./year-2026.js?v=48";
+import { year2026 } from "./year-2026.js?v=50";
 
 export const YEARS = [year2022, year2023, year2024, year2025, year2026];
 

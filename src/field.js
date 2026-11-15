@@ -1,4 +1,4 @@
-import { HOME_PALETTE } from "./palette.js";
+import { HOME_PALETTE } from "./palette.js?v=62";
 
 const VERT = `
 attribute vec2 a_pos;

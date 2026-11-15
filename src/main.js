@@ -1,23 +1,34 @@
-import { startField } from "./field.js?v=48";
+import { startField } from "./field.js?v=62";
 import {
   HOME_PALETTE,
   paletteFromCoverDeep,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=48";
+} from "./palette.js?v=62";
 import {
+  ALL_MONTHS,
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js?v=48";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=48";
-import { reviewIds, reviewItems } from "./data/reviews.js?v=48";
+} from "./data/catalog.js?v=62";
+import {
+  buildPlaysSeries,
+  buildStarStats,
+  buildTrackStats,
+  sortStarStats,
+  sortTrackStats,
+  yearWrap,
+} from "./data/stats.js?v=73";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=62";
+import { reviewIds, reviewItems } from "./data/reviews.js?v=62";
+import { bindDiscGallery } from "./disc-gallery-three.js?v=72";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
+let destroyDiscRail = null;
 
 const LATEST = LATEST_MONTH;
 const CURRENT_FAV = LATEST?.tracks?.[0] || null;
@@ -144,8 +155,25 @@ function starMonthBlock(month, top) {
   `;
 }
 
+function parseArchiveQuery(search) {
+  const q = new URLSearchParams(search || "");
+  const yearRaw = q.get("year");
+  const year =
+    yearRaw && yearRaw.toUpperCase() === "ALL"
+      ? "ALL"
+      : YEAR_MAP[Number(yearRaw)]
+        ? Number(yearRaw)
+        : "ALL";
+  return {
+    year,
+    sort: q.get("sort") || "",
+    limit: Number(q.get("limit")) || 0,
+  };
+}
+
 function parseRoute() {
-  const p = path();
+  const raw = path();
+  const [p, query = ""] = raw.split("?");
   if (p === "/" || p === "") return { name: "home" };
   const reviewDetail = p.match(/^\/album-review\/([^/]+)$/);
   if (reviewDetail) {
@@ -161,6 +189,20 @@ function parseRoute() {
   if (p === "/monthly-news" || p === "/monthly-news/") {
     return { name: "news-index" };
   }
+
+  if (p === "/archive" || p === "/archive/") {
+    return { name: "archive", ...parseArchiveQuery(query) };
+  }
+  if (p === "/archive/stars" || p === "/archive/stars/") {
+    return { name: "archive-stars", ...parseArchiveQuery(query) };
+  }
+  if (p === "/archive/tracks" || p === "/archive/tracks/") {
+    return { name: "archive-tracks", ...parseArchiveQuery(query) };
+  }
+  if (p === "/archive/plays" || p === "/archive/plays/") {
+    return { name: "archive-plays", ...parseArchiveQuery(query) };
+  }
+
   if (p === "/monthly-report" || p === "/monthly-report/") {
     return { name: "report-index", year: LATEST.year };
   }
@@ -189,6 +231,7 @@ function parseRoute() {
 }
 
 function header(page) {
+  const archiveOn = page === "archive" || String(page).startsWith("archive");
   return `
     <header class="site-header">
       <a class="wordmark" href="#/" aria-label="CHARON STUDIO home">CHARON <i></i> <span>studio</span></a>
@@ -198,6 +241,7 @@ function header(page) {
           <li><a href="#/album-review" class="${page === "review" ? "is-active" : ""}">New Album Review</a></li>
           <li><a href="#/monthly-report" class="${page === "report" ? "is-active" : ""}">Monthly Report</a></li>
           <li><a href="#/monthly-report/star" class="${page === "star" ? "is-active" : ""}">Star</a></li>
+          <li><a href="#/archive" class="${archiveOn ? "is-active" : ""}">Archive</a></li>
         </ul>
       </nav>
     </header>
@@ -646,53 +690,126 @@ function fitMast() {
   mast.style.columnGap = "";
 }
 
+function reportDiscItems(focusYear) {
+  const months = ALL_MONTHS;
+  let startIndex = months.findIndex(
+    (m) => m.year === LATEST.year && m.month === LATEST.month
+  );
+  if (YEAR_MAP[focusYear]) {
+    const yearFirst = months.findIndex((m) => m.year === focusYear);
+    if (yearFirst >= 0) startIndex = yearFirst;
+    if (focusYear === LATEST.year) {
+      const latest = months.findIndex(
+        (m) => m.year === LATEST.year && m.month === LATEST.month
+      );
+      if (latest >= 0) startIndex = latest;
+    }
+  }
+  if (startIndex < 0) startIndex = Math.max(0, months.length - 1);
+  return { months, startIndex };
+}
+
 function reportIndexView(year) {
   const y = YEAR_MAP[year] ? year : LATEST.year;
-  const months = monthsForYear(y);
-  document.title = `MONTHLY REPORT ${y} — CHARON STUDIO`;
-  document.body.dataset.page = "report";
-  field.setMode(1);
-  const paletteSource = months[months.length - 1] || LATEST;
-  field.setPalette(paletteFromHues(paletteSource.tracks));
+  const { months, startIndex } = reportDiscItems(y);
+  const focus = months[startIndex] || LATEST;
+  const focusTrack = focus.tracks?.[0];
+  document.title = `MONTHLY REPORT — CHARON STUDIO`;
+  document.body.dataset.page = "report-discs";
+  field.setMode(0.35);
 
-  const cards = months
-    .map((m) => {
-      const top = m.tracks[0];
-      const starName = m.star?.artist || "—";
-      return `
-      <a class="month-card" href="#/monthly-report/${m.year}/${pad(m.month)}">
-        <div class="month-card-cover">
-          <img src="${coverUrl(top.cover)}" alt="${escapeAttr(top.title)} cover" loading="lazy" />
-        </div>
-        <div class="month-card-meta">
-          <p class="kicker">${m.labelZh} ‣ ${m.labelEn}</p>
-          <h2>${escapeHtml(top.title)}</h2>
-          <p class="track-meta">${escapeHtml(top.artist)}</p>
-          <p class="track-meta">${m.plays} plays · ${formatDeltaShort(m.delta)}</p>
-          <p class="track-meta month-card-star">Star ‣ ${escapeHtml(starName)}</p>
-        </div>
-      </a>
-    `;
-    })
-    .join("");
-
-  const latestHref = `#/monthly-report/${LATEST.year}/${pad(LATEST.month)}`;
+  const yearJumps = YEAR_LIST.map((yr) => {
+    const active = yr === y ? "is-active" : "";
+    return `<button type="button" class="month-chip ${active}" data-jump-year="${yr}">${yr}</button>`;
+  }).join("");
 
   return `
     ${header("report")}
-    <main class="report report-index">
-      ${archiveSwitcher(y, null)}
-      <div class="archive-lead">
-        <p class="kicker">Monthly Report ‣ ${y}</p>
-        <a class="archive-latest" href="${latestHref}">Open latest month → ${LATEST.labelEn} ${LATEST.year}</a>
-      </div>
-      <section class="month-grid">${cards}</section>
-      <footer class="site-footer">
-        <span>CHARON STUDIO</span>
-        <span>${y} archive · ${months.length} months</span>
+    <main class="report report-discs" data-start-index="${startIndex}">
+      <div class="disc-grain" aria-hidden="true"></div>
+      <nav class="month-switch archive-switch disc-year-nav" aria-label="Archive years">
+        <span class="month-switch-label">YEAR</span>
+        <div class="month-chips">${yearJumps}</div>
+        <span class="disc-hint">Scroll · Hover · Click</span>
+      </nav>
+
+      <section class="disc-stage" aria-label="Monthly favourite discs">
+        <div class="disc-viewport"></div>
+      </section>
+
+      <footer class="disc-foot" aria-live="polite">
+        <div class="disc-meta">
+          <p class="disc-meta-kicker">Monthly Report</p>
+          <h1 class="disc-meta-title" data-disc-title>${escapeHtml(focusTrack?.title || "")}</h1>
+          <p class="disc-quote" data-disc-quote>${escapeHtml(`${focus.labelEn.toUpperCase()} · ${focus.plays} PLAYS`)}</p>
+          <dl class="disc-meta-list">
+            <div><dt>Artist</dt><dd data-disc-artist>${escapeHtml(focusTrack?.artist || "")}</dd></div>
+            <div><dt>Year</dt><dd data-disc-year>${focus.year}</dd></div>
+            <div><dt>Month</dt><dd data-disc-month>${escapeHtml(`${focus.labelZh} · ${focus.labelEn}`)}</dd></div>
+            <div><dt>Star</dt><dd data-disc-star>${escapeHtml(focus.star?.artist || "—")}</dd></div>
+            <div><dt>Plays</dt><dd data-disc-plays>${escapeHtml(`${focus.plays} plays · ${formatDeltaShort(focus.delta)}`)}</dd></div>
+          </dl>
+          <p class="disc-meta-cta">Click focused disc to open</p>
+        </div>
+        <p class="disc-foot-note">${months.length} months · ${YEAR_LIST[0]}–${YEAR_LIST[YEAR_LIST.length - 1]}</p>
       </footer>
     </main>
   `;
+}
+
+async function bindReportDiscs() {
+  if (typeof destroyDiscRail === "function") {
+    destroyDiscRail();
+    destroyDiscRail = null;
+  }
+  const root = app.querySelector(".report-discs");
+  if (!root) return;
+
+  const { months, startIndex } = reportDiscItems(
+    Number(root.querySelector("[data-jump-year].is-active")?.dataset.jumpYear) || LATEST.year
+  );
+  const items = months.map((m) => {
+    const top = m.tracks[0];
+    return {
+      id: m.id,
+      href: `#/monthly-report/${m.year}/${pad(m.month)}`,
+      title: top?.title || "",
+      artist: top?.artist || "",
+      year: m.year,
+      month: m.month,
+      monthLabel: `${m.labelZh} · ${m.labelEn}`,
+      star: m.star?.artist || "—",
+      plays: `${m.plays} plays · ${formatDeltaShort(m.delta)}`,
+      quote: `${m.labelEn.toUpperCase()} · ${m.plays} PLAYS`,
+      cover: coverUrl(top?.cover, 1000),
+      hue: top?.hue || "#8fb38a",
+    };
+  });
+
+  let tintTimer = 0;
+  destroyDiscRail = bindDiscGallery(root, {
+    items,
+    startIndex,
+    onOpen: (href) => {
+      location.hash = href.startsWith("#") ? href : `#${href}`;
+    },
+    onActive: ({ id, hue, year }) => {
+      if (hue) root.style.setProperty("--disc-tint", hue);
+      root.__discGallery?.setRipplePalette?.(null, hue);
+      root.querySelectorAll("[data-jump-year]").forEach((btn) => {
+        btn.classList.toggle("is-active", Number(btn.dataset.jumpYear) === Number(year));
+      });
+      clearTimeout(tintTimer);
+      tintTimer = setTimeout(async () => {
+        const month = ALL_MONTHS.find((m) => m.id === id);
+        if (!month || document.body.dataset.page !== "report-discs") return;
+        const colors = await ensurePalette(month.id, month.tracks);
+        if (document.body.dataset.page !== "report-discs") return;
+        field.setPalette(colors);
+        root.__discGallery?.setRipplePalette?.(colors, hue);
+      }, 140);
+    },
+  });
 }
 
 function starArchiveSwitcher(activeYear) {
@@ -753,6 +870,302 @@ function starView(year) {
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
         <span>Star archive ${y}</span>
+      </footer>
+    </main>
+  `;
+}
+
+function archiveYearChips(basePath, activeYear, extraQuery = "") {
+  const suffix = extraQuery ? `&${extraQuery.replace(/^&/, "")}` : "";
+  const allActive = activeYear === "ALL" ? "is-active" : "";
+  const years = [
+    `<a class="month-chip ${allActive}" href="#${basePath}?year=ALL${suffix}">ALL</a>`,
+    ...YEAR_LIST.map((y) => {
+      const active = y === activeYear ? "is-active" : "";
+      return `<a class="month-chip ${active}" href="#${basePath}?year=${y}${suffix}">${y}</a>`;
+    }),
+  ];
+  return `
+    <nav class="month-switch archive-switch" aria-label="Archive year filter">
+      <span class="month-switch-label">YEAR</span>
+      <div class="month-chips">${years.join("")}</div>
+    </nav>
+  `;
+}
+
+function archiveSubnav(active) {
+  const items = [
+    { id: "hub", href: "#/archive", label: "Index" },
+    { id: "stars", href: "#/archive/stars", label: "Stars" },
+    { id: "tracks", href: "#/archive/tracks", label: "Tracks" },
+    { id: "plays", href: "#/archive/plays", label: "Plays" },
+  ];
+  return `
+    <nav class="archive-subnav" aria-label="Archive sections">
+      ${items
+        .map(
+          (it) =>
+            `<a class="archive-subnav-link ${active === it.id ? "is-active" : ""}" href="${it.href}">${it.label}</a>`
+        )
+        .join("")}
+    </nav>
+  `;
+}
+
+function monthChipsHtml(months, limit = 8) {
+  const shown = months.slice(0, limit);
+  const rest = months.length - shown.length;
+  const chips = shown
+    .map(
+      (m) =>
+        `<a class="stats-month-chip" href="${m.href}">${m.labelEn.slice(0, 3)} ${String(m.year).slice(2)}</a>`
+    )
+    .join("");
+  return `${chips}${rest > 0 ? `<span class="stats-month-more">+${rest}</span>` : ""}`;
+}
+
+function archiveHubView() {
+  document.title = `ARCHIVE — CHARON STUDIO`;
+  document.body.dataset.page = "archive";
+  field.setMode(0.4);
+  const wrap = yearWrap(ALL_MONTHS, LATEST.year);
+  const starN = buildStarStats(ALL_MONTHS, "ALL").length;
+  const trackN = buildTrackStats(ALL_MONTHS, "ALL").length;
+  const plays = buildPlaysSeries(ALL_MONTHS, "ALL");
+
+  return `
+    ${header("archive")}
+    <main class="archive-page">
+      ${archiveSubnav("hub")}
+      <header class="archive-hero">
+        <p class="kicker">Archive ‣ Stats</p>
+        <h1 class="index-title">Listening ledger</h1>
+        <p class="index-sub">${ALL_MONTHS.length} months · ${YEAR_LIST[0]}–${YEAR_LIST[YEAR_LIST.length - 1]} · appearances ≠ plays</p>
+      </header>
+
+      <section class="archive-gate" aria-label="Archive sections">
+        <a class="archive-gate-card" href="#/archive/stars">
+          <p class="kicker">01 ‣ Star Hall</p>
+          <h2>Monthly Star artists</h2>
+          <p class="archive-gate-note">${starN} artists · count &amp; ART minutes</p>
+        </a>
+        <a class="archive-gate-card" href="#/archive/tracks">
+          <p class="kicker">02 ‣ FAV Tracks</p>
+          <h2>Songs on the board</h2>
+          <p class="archive-gate-note">${trackN} titles · Top by appearances</p>
+        </a>
+        <a class="archive-gate-card" href="#/archive/plays">
+          <p class="kicker">03 ‣ Plays</p>
+          <h2>Listening volume</h2>
+          <p class="archive-gate-note">${plays.total.toLocaleString()} plays · peak ${escapeHtml(plays.peak?.label || "—")}</p>
+        </a>
+      </section>
+
+      <section class="archive-wrap">
+        <p class="kicker">Wrapped ‣ ${wrap.year}</p>
+        <dl class="archive-wrap-list">
+          <div>
+            <dt>Star king</dt>
+            <dd>${wrap.starKing ? escapeHtml(`${wrap.starKing.artist} · ${wrap.starKing.count}×`) : "—"}</dd>
+          </div>
+          <div>
+            <dt>Track king</dt>
+            <dd>${
+              wrap.trackKing
+                ? escapeHtml(`${wrap.trackKing.title} · ${wrap.trackKing.appearances} mo`)
+                : "—"
+            }</dd>
+          </div>
+          <div>
+            <dt>Peak month</dt>
+            <dd>${
+              wrap.peakMonth
+                ? `<a href="${wrap.peakMonth.href}">${escapeHtml(wrap.peakMonth.label)} · ${wrap.peakMonth.plays.toLocaleString()}</a>`
+                : "—"
+            }</dd>
+          </div>
+          <div>
+            <dt>Year plays</dt>
+            <dd>${wrap.totalPlays.toLocaleString()}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>Archive from existing monthly reports</span>
+      </footer>
+    </main>
+  `;
+}
+
+function archiveStarsView(year = "ALL", sort = "count") {
+  document.title = `STAR HALL — ARCHIVE — CHARON STUDIO`;
+  document.body.dataset.page = "archive-stars";
+  field.setMode(0.45);
+  const mode = sort === "minutes" ? "minutes" : "count";
+  const rows = sortStarStats(buildStarStats(ALL_MONTHS, year), mode);
+
+  const list = rows
+    .map((r, i) => {
+      const cover = coverUrl(r.cover, 400);
+      return `
+      <article class="stats-row stats-row-star">
+        <p class="stats-rank">${pad(i + 1)}</p>
+        <div class="stats-cover">
+          ${cover ? `<img src="${cover}" alt="${escapeAttr(r.artist)}" loading="lazy" />` : ""}
+        </div>
+        <div class="stats-body">
+          <h2 class="stats-title">${escapeHtml(r.artist)}</h2>
+          <p class="stats-line">
+            <strong>${r.count}</strong> month${r.count === 1 ? "" : "s"}
+            · ${formatArtTime(r.artMinutesTotal)} total
+            · avg ${formatArtTime(Math.round(r.artMinutesAvg))}
+            · peak ${formatArtTime(r.artMinutesPeak)}
+          </p>
+          <p class="stats-line muted">
+            Last <a href="${r.lastHref}">${escapeHtml(r.lastId)}</a>
+            · FAV overlap ${r.favIntersectionMonths}/${r.count}
+          </p>
+          <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  return `
+    ${header("archive")}
+    <main class="archive-page">
+      ${archiveSubnav("stars")}
+      ${archiveYearChips("/archive/stars", year, `sort=${mode}`)}
+      <header class="archive-hero archive-hero-compact">
+        <p class="kicker">Archive ‣ Star Hall</p>
+        <h1 class="index-title">Star artists</h1>
+        <p class="index-sub">${rows.length} artists · monthly star only</p>
+        <div class="stats-mode" role="group" aria-label="Sort Star Hall">
+          <a class="month-chip ${mode === "count" ? "is-active" : ""}" href="#/archive/stars?year=${year}&sort=count">By count</a>
+          <a class="month-chip ${mode === "minutes" ? "is-active" : ""}" href="#/archive/stars?year=${year}&sort=minutes">By ART minutes</a>
+        </div>
+      </header>
+      <section class="stats-list">${list || `<p class="archive-empty">No stars in this filter.</p>`}</section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>Star Hall</span>
+      </footer>
+    </main>
+  `;
+}
+
+function archiveTracksView(year = "ALL", sort = "appearances", limit = 10) {
+  document.title = `FAV TRACKS — ARCHIVE — CHARON STUDIO`;
+  document.body.dataset.page = "archive-tracks";
+  field.setMode(0.45);
+  const mode =
+    sort === "numberOnes" || sort === "ones"
+      ? "numberOnes"
+      : sort === "weighted"
+        ? "weighted"
+        : "appearances";
+  const cap = limit === 20 ? 20 : 10;
+  const all = sortTrackStats(buildTrackStats(ALL_MONTHS, year), mode);
+  const rows = all.slice(0, cap);
+
+  const list = rows
+    .map((r, i) => {
+      const cover = coverUrl(r.cover, 400);
+      return `
+      <article class="stats-row stats-row-track">
+        <p class="stats-rank">${pad(i + 1)}</p>
+        <div class="stats-cover">
+          ${cover ? `<img src="${cover}" alt="${escapeAttr(r.title)}" loading="lazy" />` : ""}
+        </div>
+        <div class="stats-body">
+          <h2 class="stats-title">${escapeHtml(r.title)}</h2>
+          <p class="stats-line">${escapeHtml(r.artist)}</p>
+          <p class="stats-line">
+            <strong>${r.appearances}</strong> appearance${r.appearances === 1 ? "" : "s"}
+            · <strong>${r.numberOnes}</strong> × #1
+            · weighted ${r.weighted}
+            ${r.isComeback ? " · comeback" : ""}
+          </p>
+          <p class="stats-note muted">Appearances count months on FAV.01–04 — not stream plays.</p>
+          <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  const yq = `year=${year}`;
+  return `
+    ${header("archive")}
+    <main class="archive-page">
+      ${archiveSubnav("tracks")}
+      ${archiveYearChips("/archive/tracks", year, `sort=${mode}&limit=${cap}`)}
+      <header class="archive-hero archive-hero-compact">
+        <p class="kicker">Archive ‣ FAV Tracks</p>
+        <h1 class="index-title">Songs on the board</h1>
+        <p class="index-sub">Top ${cap} of ${all.length} · appearances ≠ plays</p>
+        <div class="stats-mode" role="group" aria-label="Sort FAV tracks">
+          <a class="month-chip ${mode === "appearances" ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=appearances&limit=${cap}">Appearances</a>
+          <a class="month-chip ${mode === "numberOnes" ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=numberOnes&limit=${cap}">#1 months</a>
+          <a class="month-chip ${mode === "weighted" ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=weighted&limit=${cap}">Weighted</a>
+        </div>
+        <div class="stats-mode" role="group" aria-label="List length">
+          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=${mode}&limit=10">Top 10</a>
+          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=${mode}&limit=20">Top 20</a>
+        </div>
+      </header>
+      <section class="stats-list">${list || `<p class="archive-empty">No tracks in this filter.</p>`}</section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>FAV track board</span>
+      </footer>
+    </main>
+  `;
+}
+
+function archivePlaysView(year = "ALL") {
+  document.title = `PLAYS — ARCHIVE — CHARON STUDIO`;
+  document.body.dataset.page = "archive-plays";
+  field.setMode(0.4);
+  const series = buildPlaysSeries(ALL_MONTHS, year);
+  const max = series.maxPlays || 1;
+
+  const bars = series.points
+    .map((p) => {
+      const h = Math.max(4, Math.round((p.plays / max) * 100));
+      const isPeak = series.peak && p.id === series.peak.id;
+      const isTrough = series.trough && p.id === series.trough.id;
+      const mark = isPeak ? "is-peak" : isTrough ? "is-trough" : "";
+      return `
+      <a class="plays-bar ${mark}" href="${p.href}" style="--h:${h}%" title="${escapeAttr(`${p.labelEn} ${p.year}: ${p.plays} plays`)}">
+        <span class="plays-bar-fill"></span>
+        <span class="plays-bar-label">${p.labelEn.slice(0, 1)}${String(p.year).slice(2)}</span>
+        <span class="plays-bar-val">${p.plays}</span>
+      </a>`;
+    })
+    .join("");
+
+  return `
+    ${header("archive")}
+    <main class="archive-page">
+      ${archiveSubnav("plays")}
+      ${archiveYearChips("/archive/plays", year)}
+      <header class="archive-hero archive-hero-compact">
+        <p class="kicker">Archive ‣ Plays</p>
+        <h1 class="index-title">Listening volume</h1>
+        <p class="index-sub">
+          ${series.points.length} months · total ${series.total.toLocaleString()}
+          · peak <a href="${series.peak?.href || "#"}">${escapeHtml(series.peak?.label || "—")}</a>
+          · low <a href="${series.trough?.href || "#"}">${escapeHtml(series.trough?.label || "—")}</a>
+        </p>
+      </header>
+      <section class="plays-strip" aria-label="Monthly plays timeline">
+        ${bars || `<p class="archive-empty">No plays in this filter.</p>`}
+      </section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>Plays timeline</span>
       </footer>
     </main>
   `;
@@ -920,6 +1333,11 @@ async function ensureHomePalette() {
 async function render() {
   const route = parseRoute();
 
+  if (typeof destroyDiscRail === "function") {
+    destroyDiscRail();
+    destroyDiscRail = null;
+  }
+
   if (route.name === "month") {
     const month = findMonth(route.year, route.month);
     if (!month) {
@@ -933,9 +1351,9 @@ async function render() {
   } else if (route.name === "report-index") {
     const year = route.year || LATEST.year;
     app.innerHTML = reportIndexView(year);
-    const months = monthsForYear(year);
-    const sample = months[months.length - 1] || LATEST;
-    const colors = await ensurePalette(`index-${year}`, sample.tracks);
+    await bindReportDiscs();
+    const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;
+    const colors = await ensurePalette(sample.id, sample.tracks);
     if (parseRoute().name === "report-index") field.setPalette(colors);
   } else if (route.name === "star") {
     const year = route.year || LATEST.year;
@@ -944,6 +1362,29 @@ async function render() {
     const sample = months[months.length - 1] || LATEST;
     const colors = await ensurePalette(`star-${year}`, sample.tracks);
     if (parseRoute().name === "star") field.setPalette(colors);
+  } else if (route.name === "archive") {
+    app.innerHTML = archiveHubView();
+    const colors = await ensureHomePalette();
+    if (parseRoute().name === "archive") field.setPalette(colors);
+  } else if (route.name === "archive-stars") {
+    app.innerHTML = archiveStarsView(route.year || "ALL", route.sort || "count");
+    const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;
+    const colors = await ensurePalette("archive-stars", sample.tracks);
+    if (parseRoute().name === "archive-stars") field.setPalette(colors);
+  } else if (route.name === "archive-tracks") {
+    app.innerHTML = archiveTracksView(
+      route.year || "ALL",
+      route.sort || "appearances",
+      route.limit || 10
+    );
+    const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;
+    const colors = await ensurePalette("archive-tracks", sample.tracks);
+    if (parseRoute().name === "archive-tracks") field.setPalette(colors);
+  } else if (route.name === "archive-plays") {
+    app.innerHTML = archivePlaysView(route.year || "ALL");
+    const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;
+    const colors = await ensurePalette("archive-plays", sample.tracks);
+    if (parseRoute().name === "archive-plays") field.setPalette(colors);
   } else if (route.name === "news-index") {
     app.innerHTML = newsIndexView();
     const colors = await ensureHomePalette();
