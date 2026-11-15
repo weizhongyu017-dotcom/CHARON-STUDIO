@@ -72,6 +72,13 @@ button {
   grid-template-columns: 1fr auto;
   align-items: start;
   z-index: 5;
+  pointer-events: none;
+}
+
+.site-header .wordmark,
+.site-header .nav-list a,
+.site-header .nav-list button {
+  pointer-events: auto;
 }
 
 .wordmark {
@@ -887,8 +894,10 @@ button:focus-visible,
 }
 
 .report-index .month-switch {
-  padding-top: 110px;
+  padding-top: 128px;
   padding-bottom: 28px;
+  position: relative;
+  z-index: 6;
 }
 
 .star-hero {
