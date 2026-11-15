@@ -451,6 +451,56 @@ export const year2026 = {
           "rank": 4
         }
       ]
+    },
+    {
+      "id": "2026-10",
+      "year": 2026,
+      "month": 10,
+      "labelEn": "October",
+      "labelZh": "十月",
+      "listener": "CHARON",
+      "source": "STUDIO",
+      "plays": 897,
+      "delta": -0.22,
+      "star": {
+        "artist": "单依纯",
+        "artMinutes": 950,
+        "cover": ""
+      },
+      "tracks": [
+        {
+          "title": "Lies (feat. Lana Del Rey)",
+          "artist": "Zach Bryan/Lana Del Rey",
+          "album": "",
+          "cover": "",
+          "hue": "#8fb38a",
+          "rank": 1
+        },
+        {
+          "title": "多少的光阴",
+          "artist": "单依纯",
+          "album": "",
+          "cover": "",
+          "hue": "#8fb38a",
+          "rank": 2
+        },
+        {
+          "title": "could cry just thinkin about you (Full Version)",
+          "artist": "Troye Sivan",
+          "album": "",
+          "cover": "",
+          "hue": "#8fb38a",
+          "rank": 3
+        },
+        {
+          "title": "Embarrassingly",
+          "artist": "Troye Sivan",
+          "album": "",
+          "cover": "",
+          "hue": "#8fb38a",
+          "rank": 4
+        }
+      ]
     }
   ]
 };
