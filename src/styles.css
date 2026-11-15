@@ -186,6 +186,25 @@ button {
   opacity: 1;
 }
 
+.home-award-chip {
+  position: absolute;
+  left: var(--pad);
+  bottom: calc(3.2vh + 2.1rem);
+  z-index: 2;
+  max-width: min(70vw, 520px);
+  font-size: var(--nav);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.62;
+  transition: opacity 0.45s var(--ease);
+}
+
+.home-award-chip:hover,
+.home-award-chip:focus-visible {
+  opacity: 1;
+}
+
 .news-detail {
   position: relative;
   z-index: 1;
@@ -1328,6 +1347,162 @@ button:focus-visible,
   letter-spacing: 0.12em;
   text-transform: uppercase;
   opacity: 0.45;
+}
+
+/* —— SONIC LUMINOUS AWARD —— */
+.award-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding-bottom: 6vh;
+  text-align: center;
+}
+
+.award-hero {
+  padding: 18vh var(--pad) 8vh;
+  margin: 0 auto;
+  max-width: 920px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.award-hero .kicker {
+  letter-spacing: 0.22em;
+}
+
+.award-title {
+  margin: 18px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18em;
+}
+
+.award-title-main {
+  font-family: var(--serif);
+  font-size: clamp(40px, 6.4vw, 96px);
+  font-weight: 400;
+  line-height: 0.94;
+  letter-spacing: -0.03em;
+}
+
+.award-title-year {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3.6vw, 52px);
+  font-weight: 400;
+  opacity: 0.5;
+  letter-spacing: 0.04em;
+}
+
+.award-section {
+  padding: 3vh var(--pad) 8vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.award-section + .award-section {
+  border-top: 1px solid var(--hair);
+  padding-top: 8vh;
+}
+
+.award-section-head {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 36px;
+  width: min(720px, 100%);
+}
+
+.award-section-head .kicker {
+  letter-spacing: 0.22em;
+}
+
+.award-list {
+  list-style: none;
+  width: min(720px, 100%);
+  display: grid;
+  gap: 0;
+}
+
+.award-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.award-item:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.award-index {
+  font-size: var(--nav);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  opacity: 0.34;
+}
+
+.award-zh {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3.2vw, 48px);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: 0.02em;
+}
+
+.award-en {
+  font-size: var(--nav);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.46;
+}
+
+.award-count {
+  margin-top: 4px;
+  font-size: var(--nav);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+.award-count span {
+  font-family: var(--serif);
+  font-size: clamp(24px, 2.2vw, 36px);
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-right: 0.35em;
+  opacity: 1;
+}
+
+.award-list-special .award-item {
+  padding: 34px 12px;
+}
+
+.award-footer {
+  margin-top: 2vh;
+  justify-content: center;
+  gap: 48px;
+}
+
+@media (max-width: 720px) {
+  .award-item {
+    padding: 24px 8px;
+  }
+
+  .award-zh {
+    font-size: clamp(24px, 7vw, 36px);
+  }
+
+  .home-award-chip {
+    bottom: calc(3.2vh + 3.6rem);
+    max-width: calc(100vw - 2 * var(--pad));
+  }
 }
 
 @media (max-width: 960px) {

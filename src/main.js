@@ -24,6 +24,11 @@ import {
 } from "./data/stats.js?v=73";
 import { monthlyNewsIds, newsItems } from "./data/news.js?v=62";
 import { reviewIds, reviewItems } from "./data/reviews.js?v=62";
+import {
+  AWARD_EDITION,
+  SINGLE_AWARDS,
+  SPECIAL_AWARDS,
+} from "./data/awards.js?v=76";
 import { bindDiscGallery } from "./disc-gallery-three.js?v=72";
 
 const app = document.querySelector("#app");
@@ -189,6 +194,15 @@ function parseRoute() {
     return { name: "news-index" };
   }
 
+  if (
+    p === "/sonic-luminous-award" ||
+    p === "/sonic-luminous-award/" ||
+    p === "/award" ||
+    p === "/award/"
+  ) {
+    return { name: "award" };
+  }
+
   if (p === "/archive" || p === "/archive/") {
     return { name: "archive", ...parseArchiveQuery(query) };
   }
@@ -240,6 +254,7 @@ function header(page) {
           <li><a href="#/album-review" class="${page === "review" ? "is-active" : ""}">New Album Review</a></li>
           <li><a href="#/monthly-report" class="${page === "report" ? "is-active" : ""}">Monthly Report</a></li>
           <li><a href="#/monthly-report/star" class="${page === "star" ? "is-active" : ""}">Star</a></li>
+          <li><a href="#/sonic-luminous-award" class="${page === "award" ? "is-active" : ""}">Sonic Luminous Award</a></li>
           <li><a href="#/archive" class="${archiveOn ? "is-active" : ""}">Archive</a></li>
         </ul>
       </nav>
@@ -639,6 +654,63 @@ function reviewIndexView() {
   `;
 }
 
+function awardView() {
+  document.title = `${AWARD_EDITION.title}(${AWARD_EDITION.year}) — CHARON STUDIO`;
+  document.body.dataset.page = "award";
+  field.setMode(0.35);
+
+  const singles = SINGLE_AWARDS.map(
+    (a, i) => `
+    <li class="award-item">
+      <span class="award-index">${pad(i + 1)}</span>
+      <h3 class="award-zh">${escapeHtml(a.zh)}</h3>
+      <p class="award-en">${escapeHtml(a.en)}</p>
+    </li>`
+  ).join("");
+
+  const specials = SPECIAL_AWARDS.map(
+    (a, i) => `
+    <li class="award-item award-item-special">
+      <span class="award-index">${pad(i + 1)}</span>
+      <h3 class="award-zh">${escapeHtml(a.zh)}</h3>
+      <p class="award-en">${escapeHtml(a.en)}</p>
+      ${a.count ? `<p class="award-count"><span>${a.count}</span> seats</p>` : ""}
+    </li>`
+  ).join("");
+
+  return `
+    ${header("award")}
+    <main class="award-page">
+      <header class="award-hero">
+        <p class="kicker">${escapeHtml(AWARD_EDITION.studio)} ‣ Awards</p>
+        <h1 class="award-title">
+          <span class="award-title-main">${escapeHtml(AWARD_EDITION.title)}</span>
+          <span class="award-title-year">(${AWARD_EDITION.year})</span>
+        </h1>
+      </header>
+
+      <section class="award-section" aria-labelledby="award-single">
+        <div class="award-section-head">
+          <p class="kicker" id="award-single">单项 ‣ Singles</p>
+        </div>
+        <ol class="award-list">${singles}</ol>
+      </section>
+
+      <section class="award-section" aria-labelledby="award-special">
+        <div class="award-section-head">
+          <p class="kicker" id="award-special">专项 ‣ Specials</p>
+        </div>
+        <ol class="award-list award-list-special">${specials}</ol>
+      </section>
+
+      <footer class="site-footer award-footer">
+        <span>${escapeHtml(AWARD_EDITION.studio)}</span>
+        <span>${escapeHtml(AWARD_EDITION.title)}(${AWARD_EDITION.year})</span>
+      </footer>
+    </main>
+  `;
+}
+
 function homeView() {
   document.title = "CHARON STUDIO";
   document.body.dataset.page = "home";
@@ -659,6 +731,7 @@ function homeView() {
             ? `<a class="home-latest-chip" href="#now">${escapeHtml(LATEST_NEWS.subtitle || LATEST_NEWS.title)} · ${escapeHtml(LATEST_NEWS.date || "")}</a>`
             : ""
         }
+        <a class="home-award-chip" href="#/sonic-luminous-award">${escapeHtml(AWARD_EDITION.title)}(${AWARD_EDITION.year}) →</a>
       </section>
       ${homeNewsView()}
     </main>
@@ -1424,6 +1497,10 @@ async function render() {
       field.setPalette(colors);
       applyReviewTheme(colors);
     }
+  } else if (route.name === "award") {
+    app.innerHTML = awardView();
+    const colors = await ensureHomePalette();
+    if (parseRoute().name === "award") field.setPalette(colors);
   } else {
     app.innerHTML = homeView();
     requestAnimationFrame(fitMast);
