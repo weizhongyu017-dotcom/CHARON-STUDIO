@@ -1,20 +1,20 @@
-import { startField } from "./field.js?v=46";
+import { startField } from "./field.js?v=47";
 import {
   HOME_PALETTE,
   paletteFromCoverDeep,
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=46";
+} from "./palette.js?v=47";
 import {
   LATEST_MONTH,
   YEAR_MAP,
   YEARS,
   findMonth,
   monthsForYear,
-} from "./data/catalog.js?v=46";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=46";
-import { reviewIds, reviewItems } from "./data/reviews.js?v=46";
+} from "./data/catalog.js?v=47";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=47";
+import { reviewIds, reviewItems } from "./data/reviews.js?v=47";
 
 const app = document.querySelector("#app");
 const field = startField(document.querySelector("#field"));
