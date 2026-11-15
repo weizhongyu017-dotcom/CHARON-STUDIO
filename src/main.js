@@ -131,12 +131,11 @@ function starMonthBlock(month, top) {
     .join("");
 
   return `
-    <article class="track star-in-month">
-      <button class="track-head" type="button" aria-expanded="false" aria-label="Reveal monthly star — tap or hover">
+    <article class="track star-in-month is-open">
+      <div class="track-head star-head-static" role="group" aria-label="Monthly star">
         <span class="rank">★</span>
-        <span class="track-artist star-artist-mask">MONTHLY STAR</span>
-        <span class="track-hint" aria-hidden="true">↓</span>
-      </button>
+        <span class="track-artist">${escapeHtml(month.star.artist)}</span>
+      </div>
       <div class="track-drawer">
         <div class="track-drawer-inner star-reveal">
           <div class="track-cover star-cover">
@@ -1237,7 +1236,7 @@ function monthView(month) {
           </div>
           <div class="stat">
             <dt>Monthly Star</dt>
-            <dd>★<small>点按 / 悬停揭晓</small></dd>
+            <dd>★ ${escapeHtml(month.star.artist)}<small>本月最佳歌手</small></dd>
           </div>
           <div class="stat">
             <dt>ART 时长</dt>
@@ -1274,7 +1273,9 @@ function monthView(month) {
 }
 
 function bindDrawers(selector = ".track") {
-  const items = [...document.querySelectorAll(selector)];
+  const items = [...document.querySelectorAll(selector)].filter(
+    (item) => !item.classList.contains("star-in-month")
+  );
   if (!items.length) return;
 
   const closeAll = (except) => {
@@ -1288,6 +1289,7 @@ function bindDrawers(selector = ".track") {
 
   items.forEach((item) => {
     const head = item.querySelector(".track-head");
+    if (!head) return;
     let leaveTimer = 0;
     const open = () => {
       clearTimeout(leaveTimer);

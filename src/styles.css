@@ -817,12 +817,26 @@ button:focus-visible,
   opacity: 0.55;
 }
 
-.star-in-month .track-drawer {
-  transition: max-height 0.95s var(--ease);
+.star-head-static {
+  cursor: default;
+  pointer-events: none;
 }
 
+.star-in-month .track-drawer,
 .star-in-month.is-open .track-drawer {
-  max-height: 420px;
+  max-height: none;
+  overflow: visible;
+}
+
+.star-in-month .track-drawer-inner,
+.star-in-month.is-open .track-drawer-inner {
+  opacity: 1;
+  transform: none;
+}
+
+.star-in-month .track-cover,
+.star-in-month.is-open .track-cover {
+  transform: none;
 }
 
 .star-reveal.track-drawer-inner {
