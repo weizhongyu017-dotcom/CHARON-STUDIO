@@ -465,38 +465,38 @@ export const year2026 = {
       "star": {
         "artist": "单依纯",
         "artMinutes": 950,
-        "cover": ""
+        "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/66/a5/ad/66a5ad30-4106-a2e5-3400-54983e51bfdf/4896004765894.jpg/1200x1200bb.jpg"
       },
       "tracks": [
         {
           "title": "Lies (feat. Lana Del Rey)",
           "artist": "Zach Bryan/Lana Del Rey",
-          "album": "",
-          "cover": "",
+          "album": "Young Manhood and Other Donatable Organs",
+          "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ea/98/f2/ea98f2b8-5131-29ae-2064-997234ef13bc/093624812647.jpg/1200x1200bb.jpg",
           "hue": "#8fb38a",
           "rank": 1
         },
         {
           "title": "多少的光阴",
           "artist": "单依纯",
-          "album": "",
-          "cover": "",
+          "album": "纯妹妹",
+          "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/66/a5/ad/66a5ad30-4106-a2e5-3400-54983e51bfdf/4896004765894.jpg/1200x1200bb.jpg",
           "hue": "#8fb38a",
           "rank": 2
         },
         {
           "title": "could cry just thinkin about you (Full Version)",
           "artist": "Troye Sivan",
-          "album": "",
-          "cover": "",
+          "album": "could cry just thinkin about you (Full Version) - Single",
+          "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/28/6a/59/286a592b-bae3-3fc8-39a0-1285b137b507/21UMGIM59991.rgb.jpg/1200x1200bb.jpg",
           "hue": "#8fb38a",
           "rank": 3
         },
         {
           "title": "Embarrassingly",
           "artist": "Troye Sivan",
-          "album": "",
-          "cover": "",
+          "album": "She’s the Best",
+          "cover": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/dd/f8/64/ddf86493-0797-459b-e6f1-a680096e026e/26UM1IM00508.rgb.jpg/1200x1200bb.jpg",
           "hue": "#8fb38a",
           "rank": 4
         }
