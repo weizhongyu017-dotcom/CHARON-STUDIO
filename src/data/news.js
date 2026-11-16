@@ -4,6 +4,46 @@
  * Types: "poster" | "track" | "release"
  */
 export const newsItems = {
+  "ariana-grande-grammy-noms-2027": {
+    id: "ariana-grande-grammy-noms-2027",
+    type: "poster",
+    kicker: "Monthly News ‣ Awards",
+    title: "69th GRAMMYs",
+    titleEn: "Nominations",
+    subtitle: "Ariana Grande",
+    date: "2026.11.16",
+    venue: "6 nominations",
+    venueEn: "The 69th Annual Grammy Awards",
+    image: "./src/media/ariana-grande-grammy-noms-2027.jpg",
+    note: "Recording Academy · nominees announced",
+    objectPosition: "50% 32%",
+    noms: [
+      {
+        cat: "Song Of The Year",
+        work: "Hate That I Made You Love Me",
+      },
+      {
+        cat: "Best Pop Vocal Album",
+        work: "Petal",
+      },
+      {
+        cat: "Best Immersive Audio Album",
+        work: "Petal",
+      },
+      {
+        cat: "Best Music Video",
+        work: "Hate That I Made You Love Me",
+      },
+      {
+        cat: "Best Traditional Pop Vocal Performance",
+        work: "For Good (with Cynthia Erivo)",
+      },
+      {
+        cat: "Best Compilation Soundtrack For Visual Media",
+        work: "Wicked: For Good (Soundtrack)",
+      },
+    ],
+  },
   "gracie-abrams-dfh-deluxe-2026": {
     id: "gracie-abrams-dfh-deluxe-2026",
     type: "poster",
@@ -51,6 +91,7 @@ export const newsItems = {
 
 /** Newest-first feed. Home teaser = first item only. */
 export const monthlyNewsIds = [
+  "ariana-grande-grammy-noms-2027",
   "gracie-abrams-dfh-deluxe-2026",
   "shan-yichun-wuxi-2026",
 ];

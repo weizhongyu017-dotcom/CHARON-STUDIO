@@ -186,24 +186,6 @@ button {
   opacity: 1;
 }
 
-.home-award-chip {
-  position: absolute;
-  left: var(--pad);
-  bottom: calc(3.2vh + 2.1rem);
-  z-index: 2;
-  max-width: min(70vw, 520px);
-  font-size: var(--nav);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  opacity: 0.62;
-  transition: opacity 0.45s var(--ease);
-}
-
-.home-award-chip:hover,
-.home-award-chip:focus-visible {
-  opacity: 1;
-}
 
 .news-detail {
   position: relative;
@@ -492,6 +474,63 @@ button:focus-visible,
   opacity: 0.55;
 }
 
+.news-poster-copy.has-noms {
+  width: min(48vw, 620px);
+  justify-content: center;
+  padding-top: 14vh;
+  padding-bottom: 8vh;
+}
+
+.news-poster-copy.has-noms .news-poster-date {
+  font-size: clamp(36px, 5vw, 72px);
+  margin: 8px 0 12px;
+}
+
+.news-poster-copy.has-noms .news-poster-sub {
+  margin-bottom: 18px;
+}
+
+.news-noms {
+  list-style: none;
+  display: grid;
+  gap: 0;
+  margin: 4px 0 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.news-noms-item {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 10px 14px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.news-noms-index {
+  font-size: var(--nav);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  opacity: 0.38;
+}
+
+.news-noms-cat {
+  font-size: var(--nav);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  margin-bottom: 4px;
+}
+
+.news-noms-work {
+  font-family: var(--serif);
+  font-size: clamp(16px, 1.35vw, 22px);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+
 .home-news-track {
   display: flex;
   align-items: center;
@@ -646,6 +685,16 @@ button:focus-visible,
     width: 100%;
     padding: 8vh var(--pad) 8vh;
     background: linear-gradient(0deg, rgba(5, 7, 13, 0.92) 55%, transparent 100%);
+  }
+
+  .news-poster-copy.has-noms {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 28vh;
+  }
+
+  .news-poster-copy.has-noms .news-poster-date {
+    font-size: clamp(32px, 10vw, 56px);
   }
 
   .home-news-poster.is-lettered .news-poster-media {
@@ -1499,10 +1548,6 @@ button:focus-visible,
     font-size: clamp(24px, 7vw, 36px);
   }
 
-  .home-award-chip {
-    bottom: calc(3.2vh + 3.6rem);
-    max-width: calc(100vw - 2 * var(--pad));
-  }
 }
 
 @media (max-width: 960px) {
@@ -1979,6 +2024,10 @@ body[data-page="report-discs"] .month-switch-label {
   z-index: 6;
   padding-top: 108px;
   padding-bottom: 0;
+}
+
+.report-mode-chips {
+  margin-right: 10px;
 }
 
 .disc-hint {

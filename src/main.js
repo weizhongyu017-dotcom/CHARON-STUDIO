@@ -22,7 +22,7 @@ import {
   sortTrackStats,
   yearWrap,
 } from "./data/stats.js?v=73";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=62";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=79";
 import { reviewIds, reviewItems } from "./data/reviews.js?v=62";
 import {
   AWARD_EDITION,
@@ -245,6 +245,7 @@ function parseRoute() {
 
 function header(page) {
   const archiveOn = page === "archive" || String(page).startsWith("archive");
+  const reportOn = page === "report" || page === "star";
   return `
     <header class="site-header">
       <a class="wordmark" href="#/" aria-label="CHARON STUDIO home">CHARON <i></i> <span>studio</span></a>
@@ -252,13 +253,22 @@ function header(page) {
         <ul class="nav-list">
           <li><a href="#/monthly-news" class="${page === "news" ? "is-active" : ""}">Monthly News</a></li>
           <li><a href="#/album-review" class="${page === "review" ? "is-active" : ""}">New Album Review</a></li>
-          <li><a href="#/monthly-report" class="${page === "report" ? "is-active" : ""}">Monthly Report</a></li>
-          <li><a href="#/monthly-report/star" class="${page === "star" ? "is-active" : ""}">Star</a></li>
-          <li><a href="#/sonic-luminous-award" class="${page === "award" ? "is-active" : ""}">Sonic Luminous Award</a></li>
+          <li><a href="#/monthly-report" class="${reportOn ? "is-active" : ""}">Monthly Report</a></li>
           <li><a href="#/archive" class="${archiveOn ? "is-active" : ""}">Archive</a></li>
         </ul>
       </nav>
     </header>
+  `;
+}
+
+function reportModeSwitcher(mode, year) {
+  const y = YEAR_MAP[year] ? year : LATEST.year;
+  return `
+    <span class="month-switch-label">VIEW</span>
+    <div class="month-chips report-mode-chips">
+      <a class="month-chip ${mode === "discs" ? "is-active" : ""}" href="#/monthly-report/${y}">Discs</a>
+      <a class="month-chip ${mode === "star" ? "is-active" : ""}" href="#/monthly-report/star/${y}">Star</a>
+    </div>
   `;
 }
 
@@ -300,10 +310,24 @@ function newsPosterView(item, opts = {}) {
     ? ` style="--news-pos: ${escapeAttr(item.objectPosition)}"`
     : "";
   const anchor = opts.first ? ' id="now"' : "";
+  const noms = Array.isArray(item.noms) && item.noms.length
+    ? `<ol class="news-noms">${item.noms
+        .map(
+          (n, i) => `
+        <li class="news-noms-item">
+          <span class="news-noms-index">${pad(i + 1)}</span>
+          <div class="news-noms-copy">
+            <p class="news-noms-cat">${escapeHtml(n.cat)}</p>
+            <p class="news-noms-work">${escapeHtml(n.work)}</p>
+          </div>
+        </li>`
+        )
+        .join("")}</ol>`
+    : "";
   const copy = item.lettered
     ? ""
     : `
-      <div class="news-poster-copy">
+      <div class="news-poster-copy${noms ? " has-noms" : ""}">
         <p class="kicker">${escapeHtml(item.kicker)}</p>
         <p class="news-poster-date">${escapeHtml(item.date)}</p>
         <h2 class="news-poster-title">
@@ -315,6 +339,7 @@ function newsPosterView(item, opts = {}) {
           <span>${escapeHtml(item.venue || "")}</span>
           <span>${escapeHtml(item.venueEn || "")}</span>
         </div>
+        ${noms}
         <p class="news-poster-note">${escapeHtml(item.note || "")}</p>
       </div>
     `;
@@ -731,7 +756,6 @@ function homeView() {
             ? `<a class="home-latest-chip" href="#now">${escapeHtml(LATEST_NEWS.subtitle || LATEST_NEWS.title)} · ${escapeHtml(LATEST_NEWS.date || "")}</a>`
             : ""
         }
-        <a class="home-award-chip" href="#/sonic-luminous-award">${escapeHtml(AWARD_EDITION.title)}(${AWARD_EDITION.year}) →</a>
       </section>
       ${homeNewsView()}
     </main>
@@ -799,7 +823,8 @@ function reportIndexView(year) {
     ${header("report")}
     <main class="report report-discs" data-start-index="${startIndex}">
       <div class="disc-grain" aria-hidden="true"></div>
-      <nav class="month-switch archive-switch disc-year-nav" aria-label="Archive years">
+      <nav class="month-switch archive-switch disc-year-nav" aria-label="Monthly report views">
+        ${reportModeSwitcher("discs", y)}
         <span class="month-switch-label">YEAR</span>
         <div class="month-chips">${yearJumps}</div>
         <span class="disc-hint">Scroll · Hover · Click</span>
@@ -891,7 +916,8 @@ function starArchiveSwitcher(activeYear) {
   }).join("");
 
   return `
-    <nav class="month-switch archive-switch" aria-label="Star archive years">
+    <nav class="month-switch archive-switch" aria-label="Monthly report star view">
+      ${reportModeSwitcher("star", activeYear)}
       <span class="month-switch-label">YEAR</span>
       <div class="month-chips">${yearLinks}</div>
     </nav>
@@ -935,7 +961,7 @@ function starView(year) {
     <main class="report star-page">
       ${starArchiveSwitcher(y)}
       <div class="archive-lead">
-        <p class="kicker">Monthly Star ‣ ${y}</p>
+        <p class="kicker">Monthly Report ‣ Star ‣ ${y}</p>
         <p class="archive-lead-sub">${months.length} months · FAV ART + ART time</p>
       </div>
       <section class="month-grid star-grid">${cards}</section>
