@@ -16,7 +16,8 @@ export const newsItems = {
     venueEn: "The 69th Annual Grammy Awards",
     image: "./src/media/ariana-grande-grammy-noms-2027.jpg",
     note: "Recording Academy · nominees announced",
-    objectPosition: "50% 32%",
+    objectPosition: "50% 42%",
+    posterFit: "contain",
     noms: [
       {
         cat: "Song Of The Year",

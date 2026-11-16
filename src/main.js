@@ -22,7 +22,7 @@ import {
   sortTrackStats,
   yearWrap,
 } from "./data/stats.js?v=73";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=79";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=80";
 import { reviewIds, reviewItems } from "./data/reviews.js?v=62";
 import {
   AWARD_EDITION,
@@ -299,9 +299,11 @@ function archiveSwitcher(activeYear, activeMonthId) {
 
 function newsPosterView(item, opts = {}) {
   const alt = [item.title, item.subtitle, item.venue, item.date].filter(Boolean).join(" · ");
+  const contain = item.posterFit === "contain";
   const tone = [
     item.tone === "crimson" ? "is-crimson" : "",
     item.lettered ? "is-lettered" : "",
+    contain ? "is-contain" : "",
   ]
     .filter(Boolean)
     .map((c) => ` ${c}`)
@@ -347,7 +349,7 @@ function newsPosterView(item, opts = {}) {
     <article${anchor} class="home-news home-news-poster${tone}" aria-label="${escapeAttr(item.kicker || "Monthly News")}">
       <div class="news-poster-media"${pos}>
         <img src="${escapeAttr(item.image)}" alt="${escapeAttr(alt)}" loading="${opts.first ? "eager" : "lazy"}" />
-        <div class="news-poster-veil" aria-hidden="true"></div>
+        ${contain ? "" : `<div class="news-poster-veil" aria-hidden="true"></div>`}
       </div>
       ${copy}
     </article>
@@ -423,7 +425,7 @@ function newsItemView(item, index) {
 
 function homeNewsView() {
   if (!LATEST_NEWS) return "";
-  // Home teaser: always readable overlay; prefer square cover over lettered landscape.
+  // Home teaser: contain posters stay full-frame; else prefer square cover + readable overlay.
   const teaser = {
     ...LATEST_NEWS,
     lettered: false,
