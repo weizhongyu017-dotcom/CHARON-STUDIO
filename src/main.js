@@ -22,7 +22,7 @@ import {
   sortTrackStats,
   yearWrap,
 } from "./data/stats.js?v=73";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=80";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=83";
 import { reviewIds, reviewItems } from "./data/reviews.js?v=62";
 import {
   AWARD_EDITION,
@@ -299,11 +299,11 @@ function archiveSwitcher(activeYear, activeMonthId) {
 
 function newsPosterView(item, opts = {}) {
   const alt = [item.title, item.subtitle, item.venue, item.date].filter(Boolean).join(" · ");
-  const contain = item.posterFit === "contain";
+  const split = item.posterFit === "split" || item.posterFit === "contain";
   const tone = [
     item.tone === "crimson" ? "is-crimson" : "",
     item.lettered ? "is-lettered" : "",
-    contain ? "is-contain" : "",
+    split ? "is-split" : "",
   ]
     .filter(Boolean)
     .map((c) => ` ${c}`)
@@ -326,6 +326,14 @@ function newsPosterView(item, opts = {}) {
         )
         .join("")}</ol>`
     : "";
+  const cornerName =
+    item.namePlacement === "corner" && item.subtitle
+      ? `<p class="news-poster-corner-name">${escapeHtml(item.subtitle)}</p>`
+      : "";
+  const subLine =
+    item.namePlacement === "corner"
+      ? ""
+      : `<p class="news-poster-sub">${escapeHtml(item.subtitle || "")}</p>`;
   const copy = item.lettered
     ? ""
     : `
@@ -336,7 +344,7 @@ function newsPosterView(item, opts = {}) {
           <span class="news-poster-title-zh">${escapeHtml(item.title)}</span>
           <span class="news-poster-title-en">${escapeHtml(item.titleEn || "")}</span>
         </h2>
-        <p class="news-poster-sub">${escapeHtml(item.subtitle || "")}</p>
+        ${subLine}
         <div class="news-poster-venue">
           <span>${escapeHtml(item.venue || "")}</span>
           <span>${escapeHtml(item.venueEn || "")}</span>
@@ -349,7 +357,8 @@ function newsPosterView(item, opts = {}) {
     <article${anchor} class="home-news home-news-poster${tone}" aria-label="${escapeAttr(item.kicker || "Monthly News")}">
       <div class="news-poster-media"${pos}>
         <img src="${escapeAttr(item.image)}" alt="${escapeAttr(alt)}" loading="${opts.first ? "eager" : "lazy"}" />
-        ${contain ? "" : `<div class="news-poster-veil" aria-hidden="true"></div>`}
+        ${split ? "" : `<div class="news-poster-veil" aria-hidden="true"></div>`}
+        ${cornerName}
       </div>
       ${copy}
     </article>

@@ -407,51 +407,65 @@ button:focus-visible,
   display: none;
 }
 
-/* Tall theatrical posters: show full art, copy below */
-.home-news-poster.is-contain {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+/* Full-bleed split poster: left = image center crop, right = noms */
+.home-news-poster.is-split {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+  align-items: stretch;
   min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #05070d;
 }
 
-.home-news-poster.is-contain .news-poster-media {
+.home-news-poster.is-split .news-poster-media {
   position: relative;
   inset: auto;
   width: 100%;
-  height: auto;
-  max-height: min(92vh, 1100px);
-  aspect-ratio: 9 / 16;
-  margin: 0 auto;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
   background: #05070d;
 }
 
-.home-news-poster.is-contain .news-poster-media img {
+.home-news-poster.is-split .news-poster-media img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: center;
+  object-fit: cover;
+  object-position: var(--news-pos, 50% 42%);
   transform: none;
 }
 
-.home-news-poster.is-contain .news-poster-copy {
-  position: relative;
-  z-index: 2;
-  width: min(720px, 100%);
-  min-height: auto;
-  margin: 0 auto;
-  padding: 6vh var(--pad) 10vh;
-  justify-content: flex-start;
+.news-poster-corner-name {
+  position: absolute;
+  left: var(--pad);
+  bottom: 4.5vh;
+  z-index: 3;
+  margin: 0;
+  font-size: clamp(12px, 1.05vw, 15px);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #fff;
+  opacity: 0.88;
+  pointer-events: none;
 }
 
-.home-news-poster.is-contain .news-poster-copy.has-noms {
-  width: min(720px, 100%);
-  padding-top: 4vh;
-  padding-bottom: 10vh;
-  justify-content: flex-start;
+.home-news-poster.is-split .news-poster-copy,
+.home-news-poster.is-split .news-poster-copy.has-noms {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 8vh clamp(18px, 2.4vw, 36px) 7vh;
+  justify-content: center;
+  background: #05070d;
+  overflow: auto;
 }
 
 .news-poster-copy {
@@ -522,19 +536,32 @@ button:focus-visible,
 }
 
 .news-poster-copy.has-noms {
-  width: min(48vw, 620px);
+  width: min(42vw, 520px);
   justify-content: center;
-  padding-top: 14vh;
+  padding-top: 10vh;
   padding-bottom: 8vh;
 }
 
 .news-poster-copy.has-noms .news-poster-date {
-  font-size: clamp(36px, 5vw, 72px);
+  font-size: clamp(32px, 4.2vw, 64px);
   margin: 8px 0 12px;
 }
 
 .news-poster-copy.has-noms .news-poster-sub {
   margin-bottom: 18px;
+}
+
+.home-news-poster.is-split .news-poster-title-zh {
+  font-size: clamp(26px, 2.6vw, 42px);
+  letter-spacing: 0.12em;
+}
+
+.home-news-poster.is-split .news-noms-item {
+  padding: 9px 0;
+}
+
+.home-news-poster.is-split .news-poster-date {
+  font-size: clamp(28px, 3.6vw, 56px);
 }
 
 .news-noms {
@@ -724,7 +751,7 @@ button:focus-visible,
     grid-template-columns: 1fr;
   }
 
-  .home-news-poster:not(.is-lettered) .news-poster-media img {
+  .home-news-poster:not(.is-lettered):not(.is-split) .news-poster-media img {
     object-position: 50% 10%;
   }
 
@@ -744,17 +771,30 @@ button:focus-visible,
     font-size: clamp(32px, 10vw, 56px);
   }
 
-  .home-news-poster.is-contain .news-poster-media {
-    max-height: none;
-    aspect-ratio: 9 / 16;
+  .home-news-poster.is-split {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100svh;
+    overflow: visible;
   }
 
-  .home-news-poster.is-contain .news-poster-copy,
-  .home-news-poster.is-contain .news-poster-copy.has-noms {
+  .home-news-poster.is-split .news-poster-media {
+    height: 68svh;
+    min-height: 68svh;
+  }
+
+  .news-poster-corner-name {
+    bottom: 3.2vh;
+    letter-spacing: 0.22em;
+  }
+
+  .home-news-poster.is-split .news-poster-copy,
+  .home-news-poster.is-split .news-poster-copy.has-noms {
     width: 100%;
-    padding-top: 4vh;
+    min-height: auto;
+    height: auto;
+    padding: 4vh var(--pad) 8vh;
     justify-content: flex-start;
-    background: none;
   }
 
   .home-news-poster.is-lettered .news-poster-media {

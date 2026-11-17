@@ -11,13 +11,14 @@ export const newsItems = {
     title: "69th GRAMMYs",
     titleEn: "Nominations",
     subtitle: "Ariana Grande",
+    namePlacement: "corner",
     date: "2026.11.16",
     venue: "6 nominations",
     venueEn: "The 69th Annual Grammy Awards",
     image: "./src/media/ariana-grande-grammy-noms-2027.jpg",
     note: "Recording Academy · nominees announced",
     objectPosition: "50% 42%",
-    posterFit: "contain",
+    posterFit: "split",
     noms: [
       {
         cat: "Song Of The Year",
