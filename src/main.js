@@ -28,8 +28,8 @@ import {
   sortStarStats,
   sortTrackStats,
   yearWrap,
-} from "./data/stats.js?v=97";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=98";
+} from "./data/stats.js?v=102";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=102";
 import { reviewIds, reviewItems } from "./data/reviews.js?v=62";
 import {
   AWARD_EDITION,
@@ -273,7 +273,7 @@ function header(page) {
           <li><a href="#/monthly-news" class="${page === "news" ? "is-active" : ""}">Monthly News</a></li>
           <li><a href="#/album-review" class="${page === "review" ? "is-active" : ""}">New Album Review</a></li>
           <li><a href="#/monthly-report" class="${reportOn ? "is-active" : ""}">Monthly Report</a></li>
-          <li><a href="#/archive" class="${archiveOn ? "is-active" : ""}">Archive</a></li>
+          <li><a href="#/archive" class="${archiveOn ? "is-active" : ""}">Archive 档案</a></li>
         </ul>
       </nav>
     </header>
@@ -326,6 +326,7 @@ function newsPosterView(item, opts = {}) {
     split ? "is-split" : "",
     item.imageOrient === "landscape" ? "is-landscape" : "",
     dense ? "is-noms-dense" : "",
+    item.typeface === "plain" ? "is-plain" : "",
   ]
     .filter(Boolean)
     .map((c) => ` ${c}`)
@@ -1018,15 +1019,15 @@ function archiveYearChips(basePath, activeYear, extraQuery = "") {
   const suffix = extraQuery ? `&${extraQuery.replace(/^&/, "")}` : "";
   const allActive = activeYear === "ALL" ? "is-active" : "";
   const years = [
-    `<a class="month-chip ${allActive}" href="#${basePath}?year=ALL${suffix}">ALL</a>`,
+    `<a class="month-chip ${allActive}" href="#${basePath}?year=ALL${suffix}">全部</a>`,
     ...YEAR_LIST.map((y) => {
       const active = y === activeYear ? "is-active" : "";
       return `<a class="month-chip ${active}" href="#${basePath}?year=${y}${suffix}">${y}</a>`;
     }),
   ];
   return `
-    <nav class="month-switch archive-switch" aria-label="Archive year filter">
-      <span class="month-switch-label">YEAR</span>
+    <nav class="month-switch archive-switch" aria-label="按年份筛选">
+      <span class="month-switch-label">年份</span>
       <div class="month-chips">${years.join("")}</div>
     </nav>
   `;
@@ -1034,21 +1035,21 @@ function archiveYearChips(basePath, activeYear, extraQuery = "") {
 
 function archiveSubnav(active) {
   const items = [
-    { id: "hub", href: "#/archive", label: "Index" },
-    { id: "stars", href: "#/archive/stars", label: "Stars" },
-    { id: "tracks", href: "#/archive/tracks", label: "Tracks" },
-    { id: "albums", href: "#/archive/albums", label: "Albums" },
-    { id: "artists", href: "#/archive/artists", label: "Artists" },
-    { id: "ranks", href: "#/archive/ranks", label: "Ranks" },
-    { id: "seasons", href: "#/archive/seasons", label: "Seasons" },
-    { id: "plays", href: "#/archive/plays", label: "Plays" },
+    { id: "hub", href: "#/archive", label: "总览", en: "Index" },
+    { id: "stars", href: "#/archive/stars", label: "星光", en: "Stars" },
+    { id: "tracks", href: "#/archive/tracks", label: "单曲", en: "Tracks" },
+    { id: "albums", href: "#/archive/albums", label: "专辑", en: "Albums" },
+    { id: "artists", href: "#/archive/artists", label: "艺人", en: "Artists" },
+    { id: "ranks", href: "#/archive/ranks", label: "榜动", en: "Ranks" },
+    { id: "seasons", href: "#/archive/seasons", label: "季节", en: "Seasons" },
+    { id: "plays", href: "#/archive/plays", label: "播放", en: "Plays" },
   ];
   return `
-    <nav class="archive-subnav" aria-label="Archive sections">
+    <nav class="archive-subnav" aria-label="档案分区">
       ${items
         .map(
           (it) =>
-            `<a class="archive-subnav-link ${active === it.id ? "is-active" : ""}" href="${it.href}">${it.label}</a>`
+            `<a class="archive-subnav-link ${active === it.id ? "is-active" : ""}" href="${it.href}"><span class="archive-subnav-zh">${it.label}</span><span class="archive-subnav-en">${it.en}</span></a>`
         )
         .join("")}
     </nav>
@@ -1059,10 +1060,10 @@ function monthChipsHtml(months, limit = 8) {
   const shown = months.slice(0, limit);
   const rest = months.length - shown.length;
   const chips = shown
-    .map(
-      (m) =>
-        `<a class="stats-month-chip" href="${m.href}">${m.labelEn.slice(0, 3)} ${String(m.year).slice(2)}</a>`
-    )
+    .map((m) => {
+      const zh = m.labelZh || m.labelEn;
+      return `<a class="stats-month-chip" href="${m.href}">${escapeHtml(zh)}${String(m.year).slice(2)}</a>`;
+    })
     .join("");
   return `${chips}${rest > 0 ? `<span class="stats-month-more">+${rest}</span>` : ""}`;
 }
@@ -1085,82 +1086,94 @@ function archiveHubView() {
     <main class="archive-page">
       ${archiveSubnav("hub")}
       <header class="archive-hero">
-        <p class="kicker">Archive ‣ Stats</p>
-        <h1 class="index-title">Listening ledger</h1>
-        <p class="index-sub">${ALL_MONTHS.length} months · ${YEAR_LIST[0]}–${YEAR_LIST[YEAR_LIST.length - 1]} · appearances ≠ plays</p>
+        <p class="kicker">档案 ‣ 统计 Archive</p>
+        <h1 class="index-title">听歌账本</h1>
+        <p class="index-sub">${ALL_MONTHS.length} 个月 · ${YEAR_LIST[0]}–${YEAR_LIST[YEAR_LIST.length - 1]}</p>
+        <p class="archive-hero-note">这里汇总月报里的「星光艺人 / 每月最爱单曲 / 播放量」。上榜次数是进过榜的月份数，不等于播放量。</p>
       </header>
 
-      <section class="archive-gate" aria-label="Archive sections">
+      <section class="archive-lexicon" aria-label="术语说明">
+        <p class="kicker">怎么读这些词</p>
+        <dl class="archive-lexicon-list">
+          <div><dt>星光 / Star</dt><dd>当月主打艺人，看上榜月数与 ART 收听时长</dd></div>
+          <div><dt>FAV.01–04</dt><dd>每月最爱四首歌；01 是冠军，数字越小名次越高</dd></div>
+          <div><dt>ART 时长</dt><dd>该艺人在月报里的收听分钟数合计</dd></div>
+          <div><dt>加权分</dt><dd>按名次加分：冠军最多，名次越后分越少</dd></div>
+          <div><dt>回流</dt><dd>中间掉出榜单，后来又重新上榜</dd></div>
+        </dl>
+      </section>
+
+      <section class="archive-gate" aria-label="档案分区">
         <a class="archive-gate-card" href="#/archive/stars">
-          <p class="kicker">01 ‣ Star Hall</p>
-          <h2>Monthly Star artists</h2>
-          <p class="archive-gate-note">${starN} artists · count &amp; ART minutes</p>
+          <p class="kicker">01 ‣ 星光堂</p>
+          <h2>每月星光艺人</h2>
+          <p class="archive-gate-note">${starN} 位 · 比谁当过更多月的星光，以及听了多久</p>
         </a>
         <a class="archive-gate-card" href="#/archive/tracks">
-          <p class="kicker">02 ‣ FAV Tracks</p>
-          <h2>Songs on the board</h2>
-          <p class="archive-gate-note">${trackN} titles · Top by appearances</p>
+          <p class="kicker">02 ‣ 单曲榜</p>
+          <h2>上榜最爱单曲</h2>
+          <p class="archive-gate-note">${trackN} 首 · 进过 FAV.01–04 的次数</p>
         </a>
         <a class="archive-gate-card" href="#/archive/albums">
-          <p class="kicker">03 ‣ Album Hall</p>
-          <h2>Albums on FAV</h2>
-          <p class="archive-gate-note">${albumN} albums · appearances &amp; #1</p>
+          <p class="kicker">03 ‣ 专辑堂</p>
+          <h2>上榜专辑</h2>
+          <p class="archive-gate-note">${albumN} 张 · 专辑被 FAV 曲目带到榜上的次数</p>
         </a>
         <a class="archive-gate-card" href="#/archive/artists">
-          <p class="kicker">04 ‣ Artist Board</p>
-          <h2>FAV + Star credit</h2>
-          <p class="archive-gate-note">${artistN} artists · weighted board</p>
+          <p class="kicker">04 ‣ 艺人榜</p>
+          <h2>FAV + 星光综合</h2>
+          <p class="archive-gate-note">${artistN} 位 · 单曲上榜分 + 星光月数一起算</p>
         </a>
         <a class="archive-gate-card" href="#/archive/ranks">
-          <p class="kicker">05 ‣ Rank Dynamics</p>
-          <h2>Streaks &amp; climbs</h2>
-          <p class="archive-gate-note">${rankN} multi-month titles</p>
+          <p class="kicker">05 ‣ 榜动</p>
+          <h2>连冠与攀升</h2>
+          <p class="archive-gate-note">${rankN} 首 · 跨月连续上榜、名次变化、掉榜再回</p>
         </a>
         <a class="archive-gate-card" href="#/archive/seasons">
-          <p class="kicker">06 ‣ Seasons</p>
-          <h2>Season &amp; half-year</h2>
-          <p class="archive-gate-note">${seasonPack.seasons.length} seasons · ${seasonPack.halves.length} halves</p>
+          <p class="kicker">06 ‣ 季节</p>
+          <h2>春夏秋冬 / 半年</h2>
+          <p class="archive-gate-note">${seasonPack.seasons.length} 季 · ${seasonPack.halves.length} 个半年，看各季听谁最多</p>
         </a>
         <a class="archive-gate-card" href="#/archive/plays">
-          <p class="kicker">07 ‣ Plays</p>
-          <h2>Listening volume</h2>
-          <p class="archive-gate-note">${plays.total.toLocaleString()} plays · peak ${escapeHtml(plays.peak?.label || "—")}</p>
+          <p class="kicker">07 ‣ 播放量</p>
+          <h2>每月听歌量</h2>
+          <p class="archive-gate-note">合计 ${plays.total.toLocaleString()} 次 · 峰值 ${escapeHtml(plays.peak?.label || "—")}</p>
         </a>
       </section>
 
       <section class="archive-wrap">
-        <p class="kicker">Wrapped ‣ ${wrap.year}</p>
+        <p class="kicker">最新年份速览 ‣ ${wrap.year}</p>
         <dl class="archive-wrap-list">
           <div>
-            <dt>Star king</dt>
-            <dd>${wrap.starKing ? escapeHtml(`${wrap.starKing.artist} · ${wrap.starKing.count}×`) : "—"}</dd>
+            <dt>星光王</dt>
+            <dd>${wrap.starKing ? escapeHtml(`${wrap.starKing.artist} · ${wrap.starKing.count} 个月`) : "—"}</dd>
           </div>
           <div>
-            <dt>Track king</dt>
+            <dt>单曲王</dt>
             <dd>${
               wrap.trackKing
-                ? escapeHtml(`${wrap.trackKing.title} · ${wrap.trackKing.appearances} mo`)
+                ? escapeHtml(`${wrap.trackKing.title} · 上榜 ${wrap.trackKing.appearances} 月`)
                 : "—"
             }</dd>
           </div>
           <div>
-            <dt>Peak month</dt>
+            <dt>峰值月</dt>
             <dd>${
               wrap.peakMonth
-                ? `<a href="${wrap.peakMonth.href}">${escapeHtml(wrap.peakMonth.label)} · ${wrap.peakMonth.plays.toLocaleString()}</a>`
+                ? `<a href="${wrap.peakMonth.href}">${escapeHtml(wrap.peakMonth.label)} · ${wrap.peakMonth.plays.toLocaleString()} 次</a>`
                 : "—"
             }</dd>
           </div>
           <div>
-            <dt>Year plays</dt>
-            <dd>${wrap.totalPlays.toLocaleString()}</dd>
+            <dt>年播放量</dt>
+            <dd>${wrap.totalPlays.toLocaleString()} 次</dd>
           </div>
         </dl>
       </section>
 
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>Archive from existing monthly reports</span>
+        <span>数据来自现有月报</span>
       </footer>
     </main>
   `;
@@ -1185,14 +1198,14 @@ function archiveStarsView(year = "ALL", sort = "count") {
         <div class="stats-body">
           <h2 class="stats-title">${escapeHtml(r.artist)}</h2>
           <p class="stats-line">
-            <strong>${r.count}</strong> month${r.count === 1 ? "" : "s"}
-            · ${formatArtTime(r.artMinutesTotal)} total
-            · avg ${formatArtTime(Math.round(r.artMinutesAvg))}
-            · peak ${formatArtTime(r.artMinutesPeak)}
+            当过星光 <strong>${r.count}</strong> 个月
+            · 收听合计 ${formatArtTime(r.artMinutesTotal)}
+            · 月均 ${formatArtTime(Math.round(r.artMinutesAvg))}
+            · 单月最高 ${formatArtTime(r.artMinutesPeak)}
           </p>
           <p class="stats-line muted">
-            Last <a href="${r.lastHref}">${escapeHtml(r.lastId)}</a>
-            · FAV overlap ${r.favIntersectionMonths}/${r.count}
+            最近一次 <a href="${r.lastHref}">${escapeHtml(r.lastId)}</a>
+            · 同月也有 FAV 单曲 ${r.favIntersectionMonths}/${r.count} 个月
           </p>
           <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
         </div>
@@ -1206,18 +1219,19 @@ function archiveStarsView(year = "ALL", sort = "count") {
       ${archiveSubnav("stars")}
       ${archiveYearChips("/archive/stars", year, `sort=${mode}`)}
       <header class="archive-hero archive-hero-compact">
-        <p class="kicker">Archive ‣ Star Hall</p>
-        <h1 class="index-title">Star artists</h1>
-        <p class="index-sub">${rows.length} artists · monthly star only</p>
-        <div class="stats-mode" role="group" aria-label="Sort Star Hall">
-          <a class="month-chip ${mode === "count" ? "is-active" : ""}" href="#/archive/stars?year=${year}&sort=count">By count</a>
-          <a class="month-chip ${mode === "minutes" ? "is-active" : ""}" href="#/archive/stars?year=${year}&sort=minutes">By ART minutes</a>
+        <p class="kicker">档案 ‣ 星光堂</p>
+        <h1 class="index-title">星光艺人</h1>
+        <p class="index-sub">${rows.length} 位 · 只统计每月「星光」主打艺人</p>
+        <p class="archive-hero-note">「按月数」看谁当过更多次星光；「按收听时长」看星光月里听了多久（ART）。</p>
+        <div class="stats-mode" role="group" aria-label="星光堂排序">
+          <a class="month-chip ${mode === "count" ? "is-active" : ""}" href="#/archive/stars?year=${year}&sort=count">按月数</a>
+          <a class="month-chip ${mode === "minutes" ? "is-active" : ""}" href="#/archive/stars?year=${year}&sort=minutes">按收听时长</a>
         </div>
       </header>
-      <section class="stats-list">${list || `<p class="archive-empty">No stars in this filter.</p>`}</section>
+      <section class="stats-list">${list || `<p class="archive-empty">当前筛选下暂无星光艺人。</p>`}</section>
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>Star Hall</span>
+        <span>星光堂</span>
       </footer>
     </main>
   `;
@@ -1250,12 +1264,12 @@ function archiveTracksView(year = "ALL", sort = "appearances", limit = 10) {
           <h2 class="stats-title">${escapeHtml(r.title)}</h2>
           <p class="stats-line">${escapeHtml(r.artist)}</p>
           <p class="stats-line">
-            <strong>${r.appearances}</strong> appearance${r.appearances === 1 ? "" : "s"}
-            · <strong>${r.numberOnes}</strong> × #1
-            · weighted ${r.weighted}
-            ${r.isComeback ? " · comeback" : ""}
+            上榜 <strong>${r.appearances}</strong> 个月
+            · 当过冠军 <strong>${r.numberOnes}</strong> 个月
+            · 加权分 ${r.weighted}
+            ${r.isComeback ? " · 曾掉榜再回流" : ""}
           </p>
-          <p class="stats-note muted">Appearances count months on FAV.01–04 — not stream plays.</p>
+          <p class="stats-note muted">上榜 = 进入当月最爱 FAV.01–04 的月份数，不是播放次数。</p>
           <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
         </div>
       </article>`;
@@ -1269,23 +1283,24 @@ function archiveTracksView(year = "ALL", sort = "appearances", limit = 10) {
       ${archiveSubnav("tracks")}
       ${archiveYearChips("/archive/tracks", year, `sort=${mode}&limit=${cap}`)}
       <header class="archive-hero archive-hero-compact">
-        <p class="kicker">Archive ‣ FAV Tracks</p>
-        <h1 class="index-title">Songs on the board</h1>
-        <p class="index-sub">Top ${cap} of ${all.length} · appearances ≠ plays</p>
-        <div class="stats-mode" role="group" aria-label="Sort FAV tracks">
-          <a class="month-chip ${mode === "appearances" ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=appearances&limit=${cap}">Appearances</a>
-          <a class="month-chip ${mode === "numberOnes" ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=numberOnes&limit=${cap}">#1 months</a>
-          <a class="month-chip ${mode === "weighted" ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=weighted&limit=${cap}">Weighted</a>
+        <p class="kicker">档案 ‣ 单曲榜</p>
+        <h1 class="index-title">上榜最爱单曲</h1>
+        <p class="index-sub">显示前 ${cap} / 共 ${all.length} 首</p>
+        <p class="archive-hero-note">「上榜」按进过 FAV 的月份数；「冠军月」是当过 FAV.01；「加权分」名次越高加分越多。</p>
+        <div class="stats-mode" role="group" aria-label="单曲排序">
+          <a class="month-chip ${mode === "appearances" ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=appearances&limit=${cap}">上榜月数</a>
+          <a class="month-chip ${mode === "numberOnes" ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=numberOnes&limit=${cap}">冠军月数</a>
+          <a class="month-chip ${mode === "weighted" ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=weighted&limit=${cap}">加权分</a>
         </div>
-        <div class="stats-mode" role="group" aria-label="List length">
-          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=${mode}&limit=10">Top 10</a>
-          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=${mode}&limit=20">Top 20</a>
+        <div class="stats-mode" role="group" aria-label="列表长度">
+          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=${mode}&limit=10">前 10</a>
+          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/tracks?${yq}&sort=${mode}&limit=20">前 20</a>
         </div>
       </header>
-      <section class="stats-list">${list || `<p class="archive-empty">No tracks in this filter.</p>`}</section>
+      <section class="stats-list">${list || `<p class="archive-empty">当前筛选下暂无单曲。</p>`}</section>
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>FAV track board</span>
+        <span>单曲榜</span>
       </footer>
     </main>
   `;
@@ -1319,12 +1334,13 @@ function archiveAlbumsView(year = "ALL", sort = "appearances", limit = 20) {
           <h2 class="stats-title">${escapeHtml(r.album)}</h2>
           <p class="stats-line">${escapeHtml(r.artists.join(" · ") || "—")}</p>
           <p class="stats-line">
-            <strong>${r.appearances}</strong> FAV hits
-            · <strong>${r.numberOnes}</strong> × #1
-            · ${r.uniqueMonths} months
-            · ${r.trackCount} track${r.trackCount === 1 ? "" : "s"}
-            · weighted ${r.weighted}
+            被带到榜上 <strong>${r.appearances}</strong> 次
+            · 冠军曲所属 <strong>${r.numberOnes}</strong> 个月
+            · 覆盖 ${r.uniqueMonths} 个月
+            · 相关曲目 ${r.trackCount} 首
+            · 加权分 ${r.weighted}
           </p>
+          <p class="stats-note muted">按 FAV 曲目填写的专辑名汇总，不是单独的专辑榜投票。</p>
           <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
         </div>
       </article>`;
@@ -1337,23 +1353,24 @@ function archiveAlbumsView(year = "ALL", sort = "appearances", limit = 20) {
       ${archiveSubnav("albums")}
       ${archiveYearChips("/archive/albums", year, `sort=${mode}&limit=${cap}`)}
       <header class="archive-hero archive-hero-compact">
-        <p class="kicker">Archive ‣ Album Hall</p>
-        <h1 class="index-title">Albums on FAV</h1>
-        <p class="index-sub">Top ${cap} of ${all.length} · from track album fields</p>
-        <div class="stats-mode" role="group" aria-label="Sort albums">
-          <a class="month-chip ${mode === "appearances" ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=appearances&limit=${cap}">Appearances</a>
-          <a class="month-chip ${mode === "numberOnes" ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=numberOnes&limit=${cap}">#1 months</a>
-          <a class="month-chip ${mode === "weighted" ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=weighted&limit=${cap}">Weighted</a>
+        <p class="kicker">档案 ‣ 专辑堂</p>
+        <h1 class="index-title">上榜专辑</h1>
+        <p class="index-sub">显示前 ${cap} / 共 ${all.length} 张</p>
+        <p class="archive-hero-note">某张专辑里的歌进了当月最爱，这张专辑就算上榜一次；冠军月 = 有曲目拿过 FAV.01。</p>
+        <div class="stats-mode" role="group" aria-label="专辑排序">
+          <a class="month-chip ${mode === "appearances" ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=appearances&limit=${cap}">上榜次数</a>
+          <a class="month-chip ${mode === "numberOnes" ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=numberOnes&limit=${cap}">冠军月数</a>
+          <a class="month-chip ${mode === "weighted" ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=weighted&limit=${cap}">加权分</a>
         </div>
-        <div class="stats-mode" role="group" aria-label="List length">
-          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=${mode}&limit=10">Top 10</a>
-          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=${mode}&limit=20">Top 20</a>
+        <div class="stats-mode" role="group" aria-label="列表长度">
+          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=${mode}&limit=10">前 10</a>
+          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=${mode}&limit=20">前 20</a>
         </div>
       </header>
-      <section class="stats-list">${list || `<p class="archive-empty">No albums in this filter.</p>`}</section>
+      <section class="stats-list">${list || `<p class="archive-empty">当前筛选下暂无专辑。</p>`}</section>
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>Album Hall</span>
+        <span>专辑堂</span>
       </footer>
     </main>
   `;
@@ -1388,14 +1405,14 @@ function archiveArtistsView(year = "ALL", sort = "weighted", limit = 20) {
         <div class="stats-body">
           <h2 class="stats-title">${escapeHtml(r.artist)}</h2>
           <p class="stats-line">
-            <strong>${r.favAppearances}</strong> FAV credits
-            · <strong>${r.numberOnes}</strong> × #1
-            · weighted ${r.weighted}
-            · Star ${r.starCount}×
-            ${r.starCount ? `· ${formatArtTime(r.artMinutesTotal)} ART` : ""}
-            ${r.isStarOnly ? " · star only" : ""}
+            FAV 上榜记分 <strong>${r.favAppearances}</strong>
+            · 冠军 <strong>${r.numberOnes}</strong> 个月
+            · 加权分 ${r.weighted}
+            · 星光 ${r.starCount} 个月
+            ${r.starCount ? `· 收听 ${formatArtTime(r.artMinutesTotal)}` : ""}
+            ${r.isStarOnly ? " · 只当过星光、未进 FAV" : ""}
           </p>
-          <p class="stats-line muted">${r.uniqueMonths} unique months · collabs split on / &amp; feat.</p>
+          <p class="stats-line muted">覆盖 ${r.uniqueMonths} 个月 · 合作曲会按「/」与 feat. 拆给每位艺人</p>
           <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
         </div>
       </article>`;
@@ -1408,24 +1425,25 @@ function archiveArtistsView(year = "ALL", sort = "weighted", limit = 20) {
       ${archiveSubnav("artists")}
       ${archiveYearChips("/archive/artists", year, `sort=${mode}&limit=${cap}`)}
       <header class="archive-hero archive-hero-compact">
-        <p class="kicker">Archive ‣ Artist Board</p>
-        <h1 class="index-title">FAV + Star credit</h1>
-        <p class="index-sub">Top ${cap} of ${all.length} · broader than Star Hall</p>
-        <div class="stats-mode" role="group" aria-label="Sort artists">
-          <a class="month-chip ${mode === "weighted" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=weighted&limit=${cap}">Weighted</a>
-          <a class="month-chip ${mode === "fav" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=fav&limit=${cap}">FAV hits</a>
-          <a class="month-chip ${mode === "ones" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=ones&limit=${cap}">#1</a>
-          <a class="month-chip ${mode === "star" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=star&limit=${cap}">Star months</a>
+        <p class="kicker">档案 ‣ 艺人榜</p>
+        <h1 class="index-title">艺人综合积分</h1>
+        <p class="index-sub">显示前 ${cap} / 共 ${all.length} 位</p>
+        <p class="archive-hero-note">比星光堂更宽：把 FAV 单曲上榜分和星光月数合在一起。加权分优先看名次含金量。</p>
+        <div class="stats-mode" role="group" aria-label="艺人排序">
+          <a class="month-chip ${mode === "weighted" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=weighted&limit=${cap}">加权分</a>
+          <a class="month-chip ${mode === "fav" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=fav&limit=${cap}">FAV 次数</a>
+          <a class="month-chip ${mode === "ones" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=ones&limit=${cap}">冠军月数</a>
+          <a class="month-chip ${mode === "star" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=star&limit=${cap}">星光月数</a>
         </div>
-        <div class="stats-mode" role="group" aria-label="List length">
-          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=${mode}&limit=10">Top 10</a>
-          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=${mode}&limit=20">Top 20</a>
+        <div class="stats-mode" role="group" aria-label="列表长度">
+          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=${mode}&limit=10">前 10</a>
+          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=${mode}&limit=20">前 20</a>
         </div>
       </header>
-      <section class="stats-list">${list || `<p class="archive-empty">No artists in this filter.</p>`}</section>
+      <section class="stats-list">${list || `<p class="archive-empty">当前筛选下暂无艺人。</p>`}</section>
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>Artist Board</span>
+        <span>艺人榜</span>
       </footer>
     </main>
   `;
@@ -1465,12 +1483,12 @@ function archiveRanksView(year = "ALL", sort = "board", limit = 20) {
           <h2 class="stats-title">${escapeHtml(r.title)}</h2>
           <p class="stats-line">${escapeHtml(r.artist)}</p>
           <p class="stats-line">
-            board streak <strong>${r.boardStreak}</strong>
-            · #1 streak <strong>${r.oneStreak}</strong>
-            · best climb <strong>${r.bestClimb}</strong>
-            · max gap <strong>${r.maxGap}</strong> mo
+            最长连续上榜 <strong>${r.boardStreak}</strong> 个月
+            · 最长连冠 <strong>${r.oneStreak}</strong> 个月
+            · 最大攀升 <strong>${r.bestClimb}</strong> 名
+            · 掉榜最长间隔 <strong>${r.maxGap}</strong> 个月
           </p>
-          <p class="stats-line muted">${r.appearances} appearances · ${escapeHtml(rankTrail)}${(r.ranks || []).length > 8 ? " …" : ""}</p>
+          <p class="stats-line muted">共上榜 ${r.appearances} 个月 · 名次轨迹 ${escapeHtml(rankTrail)}${(r.ranks || []).length > 8 ? " …" : ""}</p>
           <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
         </div>
       </article>`;
@@ -1483,24 +1501,25 @@ function archiveRanksView(year = "ALL", sort = "board", limit = 20) {
       ${archiveSubnav("ranks")}
       ${archiveYearChips("/archive/ranks", year, `sort=${mode}&limit=${cap}`)}
       <header class="archive-hero archive-hero-compact">
-        <p class="kicker">Archive ‣ Rank Dynamics</p>
-        <h1 class="index-title">Streaks &amp; climbs</h1>
-        <p class="index-sub">Top ${cap} of ${all.length} · titles with 2+ FAV months</p>
-        <div class="stats-mode" role="group" aria-label="Sort rank dynamics">
-          <a class="month-chip ${mode === "board" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=board&limit=${cap}">Board streak</a>
-          <a class="month-chip ${mode === "ones" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=ones&limit=${cap}">#1 streak</a>
-          <a class="month-chip ${mode === "climb" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=climb&limit=${cap}">Best climb</a>
-          <a class="month-chip ${mode === "gap" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=gap&limit=${cap}">Comeback gap</a>
+        <p class="kicker">档案 ‣ 榜动</p>
+        <h1 class="index-title">连冠与攀升</h1>
+        <p class="index-sub">显示前 ${cap} / 共 ${all.length} 首 · 至少上榜过 2 个月</p>
+        <p class="archive-hero-note">「连续上榜」看连着几个月都在 FAV；「连冠」看连着几个月拿 FAV.01；「攀升」是名次往前跳了几位；「回流间隔」是掉榜后又隔了多久回来。</p>
+        <div class="stats-mode" role="group" aria-label="榜动排序">
+          <a class="month-chip ${mode === "board" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=board&limit=${cap}">连续上榜</a>
+          <a class="month-chip ${mode === "ones" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=ones&limit=${cap}">连冠</a>
+          <a class="month-chip ${mode === "climb" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=climb&limit=${cap}">最大攀升</a>
+          <a class="month-chip ${mode === "gap" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=gap&limit=${cap}">回流间隔</a>
         </div>
-        <div class="stats-mode" role="group" aria-label="List length">
-          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=${mode}&limit=10">Top 10</a>
-          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=${mode}&limit=20">Top 20</a>
+        <div class="stats-mode" role="group" aria-label="列表长度">
+          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=${mode}&limit=10">前 10</a>
+          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=${mode}&limit=20">前 20</a>
         </div>
       </header>
-      <section class="stats-list">${list || `<p class="archive-empty">No multi-month titles in this filter.</p>`}</section>
+      <section class="stats-list">${list || `<p class="archive-empty">当前筛选下暂无跨月单曲。</p>`}</section>
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>Rank Dynamics</span>
+        <span>榜动</span>
       </footer>
     </main>
   `;
@@ -1521,20 +1540,20 @@ function archiveSeasonsView(year = "ALL") {
           ${cover ? `<img src="${cover}" alt="" loading="lazy" />` : ""}
         </div>
         <div class="season-card-body">
-          <p class="kicker">${escapeHtml(s.labelZh)} ‣ ${escapeHtml(s.labelEn)}</p>
+          <p class="kicker">${escapeHtml(s.labelZh)}季 ‣ ${escapeHtml(s.labelEn)}</p>
           <h2 class="stats-title">${escapeHtml(s.monthsLabel)}</h2>
           <p class="stats-line">
-            <strong>${s.monthCount}</strong> months
-            · ${s.totalPlays.toLocaleString()} plays
-            · avg ${s.avgPlays.toLocaleString()}
+            覆盖 <strong>${s.monthCount}</strong> 个月
+            · 播放合计 ${s.totalPlays.toLocaleString()} 次
+            · 月均 ${s.avgPlays.toLocaleString()} 次
           </p>
           <p class="stats-line">
-            Star lead · ${s.topStar ? escapeHtml(`${s.topStar.artist} · ${s.topStar.count}×`) : "—"}
+            本季星光最多 · ${s.topStar ? escapeHtml(`${s.topStar.artist} · ${s.topStar.count} 个月`) : "—"}
           </p>
           <p class="stats-line">
-            FAV.01 lead · ${
+            本季 FAV.01 最多 · ${
               s.topTrack
-                ? escapeHtml(`${s.topTrack.title} · ${s.topTrack.count}×`)
+                ? escapeHtml(`${s.topTrack.title} · ${s.topTrack.count} 次`)
                 : "—"
             }
           </p>
@@ -1551,11 +1570,13 @@ function archiveSeasonsView(year = "ALL") {
         <p class="kicker">${escapeHtml(h.labelZh)} ‣ ${escapeHtml(h.labelEn)}</p>
         <h3>${escapeHtml(h.monthsLabel)}</h3>
         <p class="stats-line">
-          <strong>${h.monthCount}</strong> months · ${h.totalPlays.toLocaleString()} plays · avg ${h.avgPlays.toLocaleString()}
+          <strong>${h.monthCount}</strong> 个月
+          · 播放 ${h.totalPlays.toLocaleString()} 次
+          · 月均 ${h.avgPlays.toLocaleString()} 次
         </p>
         <p class="stats-line muted">
-          Star · ${h.topStar ? escapeHtml(`${h.topStar.artist} · ${h.topStar.count}×`) : "—"}
-          · FAV.01 · ${h.topTrack ? escapeHtml(`${h.topTrack.title} · ${h.topTrack.count}×`) : "—"}
+          星光领先 · ${h.topStar ? escapeHtml(`${h.topStar.artist} · ${h.topStar.count} 个月`) : "—"}
+          · FAV.01 领先 · ${h.topTrack ? escapeHtml(`${h.topTrack.title} · ${h.topTrack.count} 次`) : "—"}
         </p>
       </article>`;
     })
@@ -1567,19 +1588,20 @@ function archiveSeasonsView(year = "ALL") {
       ${archiveSubnav("seasons")}
       ${archiveYearChips("/archive/seasons", year)}
       <header class="archive-hero archive-hero-compact">
-        <p class="kicker">Archive ‣ Seasons</p>
-        <h1 class="index-title">Season &amp; half-year</h1>
-        <p class="index-sub">${year === "ALL" ? "All years" : year} · plays + Star + FAV.01</p>
+        <p class="kicker">档案 ‣ 季节</p>
+        <h1 class="index-title">季节与半年</h1>
+        <p class="index-sub">${year === "ALL" ? "全部年份" : `${year} 年`} · 按播放量 / 星光 / 冠军曲汇总</p>
+        <p class="archive-hero-note">春 3–5 月，夏 6–8 月，秋 9–11 月，冬 12–2 月；上半年 1–6 月，下半年 7–12 月。</p>
       </header>
-      <section class="season-grid" aria-label="Four seasons">
-        ${seasonCards || `<p class="archive-empty">No season data.</p>`}
+      <section class="season-grid" aria-label="四季">
+        ${seasonCards || `<p class="archive-empty">当前筛选下暂无季节数据。</p>`}
       </section>
-      <section class="season-half-grid" aria-label="Half years">
+      <section class="season-half-grid" aria-label="半年">
         ${halfCards}
       </section>
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>Season rolls</span>
+        <span>季节</span>
       </footer>
     </main>
   `;
@@ -1599,9 +1621,9 @@ function archivePlaysView(year = "ALL") {
       const isTrough = series.trough && p.id === series.trough.id;
       const mark = isPeak ? "is-peak" : isTrough ? "is-trough" : "";
       return `
-      <a class="plays-bar ${mark}" href="${p.href}" style="--h:${h}%" title="${escapeAttr(`${p.labelEn} ${p.year}: ${p.plays} plays`)}">
+      <a class="plays-bar ${mark}" href="${p.href}" style="--h:${h}%" title="${escapeAttr(`${p.labelZh || p.labelEn} ${p.year}：${p.plays} 次播放`)}">
         <span class="plays-bar-fill"></span>
-        <span class="plays-bar-label">${p.labelEn.slice(0, 1)}${String(p.year).slice(2)}</span>
+        <span class="plays-bar-label">${escapeHtml(p.labelZh || p.labelEn.slice(0, 1))}${String(p.year).slice(2)}</span>
         <span class="plays-bar-val">${p.plays}</span>
       </a>`;
     })
@@ -1613,20 +1635,21 @@ function archivePlaysView(year = "ALL") {
       ${archiveSubnav("plays")}
       ${archiveYearChips("/archive/plays", year)}
       <header class="archive-hero archive-hero-compact">
-        <p class="kicker">Archive ‣ Plays</p>
-        <h1 class="index-title">Listening volume</h1>
+        <p class="kicker">档案 ‣ 播放量</p>
+        <h1 class="index-title">每月听歌量</h1>
         <p class="index-sub">
-          ${series.points.length} months · total ${series.total.toLocaleString()}
-          · peak <a href="${series.peak?.href || "#"}">${escapeHtml(series.peak?.label || "—")}</a>
-          · low <a href="${series.trough?.href || "#"}">${escapeHtml(series.trough?.label || "—")}</a>
+          ${series.points.length} 个月 · 合计 ${series.total.toLocaleString()} 次
+          · 最高 <a href="${series.peak?.href || "#"}">${escapeHtml(series.peak?.label || "—")}</a>
+          · 最低 <a href="${series.trough?.href || "#"}">${escapeHtml(series.trough?.label || "—")}</a>
         </p>
+        <p class="archive-hero-note">柱高代表当月播放次数。高亮是峰值月，低谷是播放最少的月份；点柱可跳到对应月报。</p>
       </header>
-      <section class="plays-strip" aria-label="Monthly plays timeline">
-        ${bars || `<p class="archive-empty">No plays in this filter.</p>`}
+      <section class="plays-strip" aria-label="每月播放量时间线">
+        ${bars || `<p class="archive-empty">当前筛选下暂无播放数据。</p>`}
       </section>
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
-        <span>Plays timeline</span>
+        <span>播放量</span>
       </footer>
     </main>
   `;

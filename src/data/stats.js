@@ -259,13 +259,13 @@ export function buildPlaysSeries(months, year = "ALL") {
       id: peak.id,
       plays: Number(peak.plays) || 0,
       href: monthHref(peak),
-      label: `${peak.labelEn} ${peak.year}`,
+      label: `${peak.labelZh || peak.labelEn} ${peak.year}`,
     },
     trough: {
       id: trough.id,
       plays: Number(trough.plays) || 0,
       href: monthHref(trough),
-      label: `${trough.labelEn} ${trough.year}`,
+      label: `${trough.labelZh || trough.labelEn} ${trough.year}`,
     },
     total,
     maxPlays,
@@ -644,10 +644,10 @@ export function halfOfMonth(month) {
 }
 
 const SEASON_META = {
-  spring: { id: "spring", labelEn: "Spring", labelZh: "春", months: "Mar–May" },
-  summer: { id: "summer", labelEn: "Summer", labelZh: "夏", months: "Jun–Aug" },
-  autumn: { id: "autumn", labelEn: "Autumn", labelZh: "秋", months: "Sep–Nov" },
-  winter: { id: "winter", labelEn: "Winter", labelZh: "冬", months: "Dec–Feb" },
+  spring: { id: "spring", labelEn: "Spring", labelZh: "春", months: "3–5 月" },
+  summer: { id: "summer", labelEn: "Summer", labelZh: "夏", months: "6–8 月" },
+  autumn: { id: "autumn", labelEn: "Autumn", labelZh: "秋", months: "9–11 月" },
+  winter: { id: "winter", labelEn: "Winter", labelZh: "冬", months: "12–2 月" },
 };
 
 /**
@@ -714,7 +714,7 @@ export function buildSeasonStats(months, year = "ALL") {
         id: half,
         labelEn: half === "H1" ? "First half" : "Second half",
         labelZh: half === "H1" ? "上半年" : "下半年",
-        months: half === "H1" ? "Jan–Jun" : "Jul–Dec",
+        months: half === "H1" ? "1–6 月" : "7–12 月",
       },
       m
     );

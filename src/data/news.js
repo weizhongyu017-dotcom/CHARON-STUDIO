@@ -19,6 +19,7 @@ export const newsItems = {
     objectPosition: "50% 42%",
     posterFit: "split",
     imageOrient: "landscape",
+    typeface: "plain",
     noms: [
       {
         cat: "Best Traditional Pop Vocal Album",
