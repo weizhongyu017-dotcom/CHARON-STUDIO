@@ -15,14 +15,21 @@ import {
   monthsForYear,
 } from "./data/catalog.js?v=62";
 import {
+  buildAlbumStats,
+  buildArtistBoard,
   buildPlaysSeries,
+  buildRankDynamics,
+  buildSeasonStats,
   buildStarStats,
   buildTrackStats,
+  sortAlbumStats,
+  sortArtistBoard,
+  sortRankDynamics,
   sortStarStats,
   sortTrackStats,
   yearWrap,
-} from "./data/stats.js?v=73";
-import { monthlyNewsIds, newsItems } from "./data/news.js?v=83";
+} from "./data/stats.js?v=97";
+import { monthlyNewsIds, newsItems } from "./data/news.js?v=98";
 import { reviewIds, reviewItems } from "./data/reviews.js?v=62";
 import {
   AWARD_EDITION,
@@ -215,6 +222,18 @@ function parseRoute() {
   if (p === "/archive/plays" || p === "/archive/plays/") {
     return { name: "archive-plays", ...parseArchiveQuery(query) };
   }
+  if (p === "/archive/albums" || p === "/archive/albums/") {
+    return { name: "archive-albums", ...parseArchiveQuery(query) };
+  }
+  if (p === "/archive/artists" || p === "/archive/artists/") {
+    return { name: "archive-artists", ...parseArchiveQuery(query) };
+  }
+  if (p === "/archive/ranks" || p === "/archive/ranks/") {
+    return { name: "archive-ranks", ...parseArchiveQuery(query) };
+  }
+  if (p === "/archive/seasons" || p === "/archive/seasons/") {
+    return { name: "archive-seasons", ...parseArchiveQuery(query) };
+  }
 
   if (p === "/monthly-report" || p === "/monthly-report/") {
     return { name: "report-index", year: LATEST.year };
@@ -300,10 +319,13 @@ function archiveSwitcher(activeYear, activeMonthId) {
 function newsPosterView(item, opts = {}) {
   const alt = [item.title, item.subtitle, item.venue, item.date].filter(Boolean).join(" · ");
   const split = item.posterFit === "split" || item.posterFit === "contain";
+  const dense = Array.isArray(item.noms) && item.noms.length >= 9;
   const tone = [
     item.tone === "crimson" ? "is-crimson" : "",
     item.lettered ? "is-lettered" : "",
     split ? "is-split" : "",
+    item.imageOrient === "landscape" ? "is-landscape" : "",
+    dense ? "is-noms-dense" : "",
   ]
     .filter(Boolean)
     .map((c) => ` ${c}`)
@@ -320,7 +342,11 @@ function newsPosterView(item, opts = {}) {
           <span class="news-noms-index">${pad(i + 1)}</span>
           <div class="news-noms-copy">
             <p class="news-noms-cat">${escapeHtml(n.cat)}</p>
-            <p class="news-noms-work">${escapeHtml(n.work)}</p>
+            ${
+              n.work
+                ? `<p class="news-noms-work">${escapeHtml(n.work)}</p>`
+                : ""
+            }
           </div>
         </li>`
         )
@@ -350,7 +376,11 @@ function newsPosterView(item, opts = {}) {
           <span>${escapeHtml(item.venueEn || "")}</span>
         </div>
         ${noms}
-        <p class="news-poster-note">${escapeHtml(item.note || "")}</p>
+        ${
+          item.note
+            ? `<p class="news-poster-note">${escapeHtml(item.note)}</p>`
+            : ""
+        }
       </div>
     `;
   return `
@@ -358,8 +388,8 @@ function newsPosterView(item, opts = {}) {
       <div class="news-poster-media"${pos}>
         <img src="${escapeAttr(item.image)}" alt="${escapeAttr(alt)}" loading="${opts.first ? "eager" : "lazy"}" />
         ${split ? "" : `<div class="news-poster-veil" aria-hidden="true"></div>`}
-        ${cornerName}
       </div>
+      ${cornerName}
       ${copy}
     </article>
   `;
@@ -1007,6 +1037,10 @@ function archiveSubnav(active) {
     { id: "hub", href: "#/archive", label: "Index" },
     { id: "stars", href: "#/archive/stars", label: "Stars" },
     { id: "tracks", href: "#/archive/tracks", label: "Tracks" },
+    { id: "albums", href: "#/archive/albums", label: "Albums" },
+    { id: "artists", href: "#/archive/artists", label: "Artists" },
+    { id: "ranks", href: "#/archive/ranks", label: "Ranks" },
+    { id: "seasons", href: "#/archive/seasons", label: "Seasons" },
     { id: "plays", href: "#/archive/plays", label: "Plays" },
   ];
   return `
@@ -1040,6 +1074,10 @@ function archiveHubView() {
   const wrap = yearWrap(ALL_MONTHS, LATEST.year);
   const starN = buildStarStats(ALL_MONTHS, "ALL").length;
   const trackN = buildTrackStats(ALL_MONTHS, "ALL").length;
+  const albumN = buildAlbumStats(ALL_MONTHS, "ALL").length;
+  const artistN = buildArtistBoard(ALL_MONTHS, "ALL").length;
+  const rankN = buildRankDynamics(ALL_MONTHS, "ALL").length;
+  const seasonPack = buildSeasonStats(ALL_MONTHS, "ALL");
   const plays = buildPlaysSeries(ALL_MONTHS, "ALL");
 
   return `
@@ -1063,8 +1101,28 @@ function archiveHubView() {
           <h2>Songs on the board</h2>
           <p class="archive-gate-note">${trackN} titles · Top by appearances</p>
         </a>
+        <a class="archive-gate-card" href="#/archive/albums">
+          <p class="kicker">03 ‣ Album Hall</p>
+          <h2>Albums on FAV</h2>
+          <p class="archive-gate-note">${albumN} albums · appearances &amp; #1</p>
+        </a>
+        <a class="archive-gate-card" href="#/archive/artists">
+          <p class="kicker">04 ‣ Artist Board</p>
+          <h2>FAV + Star credit</h2>
+          <p class="archive-gate-note">${artistN} artists · weighted board</p>
+        </a>
+        <a class="archive-gate-card" href="#/archive/ranks">
+          <p class="kicker">05 ‣ Rank Dynamics</p>
+          <h2>Streaks &amp; climbs</h2>
+          <p class="archive-gate-note">${rankN} multi-month titles</p>
+        </a>
+        <a class="archive-gate-card" href="#/archive/seasons">
+          <p class="kicker">06 ‣ Seasons</p>
+          <h2>Season &amp; half-year</h2>
+          <p class="archive-gate-note">${seasonPack.seasons.length} seasons · ${seasonPack.halves.length} halves</p>
+        </a>
         <a class="archive-gate-card" href="#/archive/plays">
-          <p class="kicker">03 ‣ Plays</p>
+          <p class="kicker">07 ‣ Plays</p>
           <h2>Listening volume</h2>
           <p class="archive-gate-note">${plays.total.toLocaleString()} plays · peak ${escapeHtml(plays.peak?.label || "—")}</p>
         </a>
@@ -1228,6 +1286,300 @@ function archiveTracksView(year = "ALL", sort = "appearances", limit = 10) {
       <footer class="site-footer">
         <span>CHARON STUDIO</span>
         <span>FAV track board</span>
+      </footer>
+    </main>
+  `;
+}
+
+function archiveAlbumsView(year = "ALL", sort = "appearances", limit = 20) {
+  document.title = `ALBUM HALL — ARCHIVE — CHARON STUDIO`;
+  document.body.dataset.page = "archive-albums";
+  field.setMode(0.45);
+  const mode =
+    sort === "numberOnes" || sort === "ones"
+      ? "numberOnes"
+      : sort === "weighted"
+        ? "weighted"
+        : "appearances";
+  const cap = limit === 10 ? 10 : 20;
+  const all = sortAlbumStats(buildAlbumStats(ALL_MONTHS, year), mode);
+  const rows = all.slice(0, cap);
+  const yq = `year=${year}`;
+
+  const list = rows
+    .map((r, i) => {
+      const cover = coverUrl(r.cover, 400);
+      return `
+      <article class="stats-row stats-row-album">
+        <p class="stats-rank">${pad(i + 1)}</p>
+        <div class="stats-cover">
+          ${cover ? `<img src="${cover}" alt="${escapeAttr(r.album)}" loading="lazy" />` : ""}
+        </div>
+        <div class="stats-body">
+          <h2 class="stats-title">${escapeHtml(r.album)}</h2>
+          <p class="stats-line">${escapeHtml(r.artists.join(" · ") || "—")}</p>
+          <p class="stats-line">
+            <strong>${r.appearances}</strong> FAV hits
+            · <strong>${r.numberOnes}</strong> × #1
+            · ${r.uniqueMonths} months
+            · ${r.trackCount} track${r.trackCount === 1 ? "" : "s"}
+            · weighted ${r.weighted}
+          </p>
+          <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  return `
+    ${header("archive")}
+    <main class="archive-page">
+      ${archiveSubnav("albums")}
+      ${archiveYearChips("/archive/albums", year, `sort=${mode}&limit=${cap}`)}
+      <header class="archive-hero archive-hero-compact">
+        <p class="kicker">Archive ‣ Album Hall</p>
+        <h1 class="index-title">Albums on FAV</h1>
+        <p class="index-sub">Top ${cap} of ${all.length} · from track album fields</p>
+        <div class="stats-mode" role="group" aria-label="Sort albums">
+          <a class="month-chip ${mode === "appearances" ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=appearances&limit=${cap}">Appearances</a>
+          <a class="month-chip ${mode === "numberOnes" ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=numberOnes&limit=${cap}">#1 months</a>
+          <a class="month-chip ${mode === "weighted" ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=weighted&limit=${cap}">Weighted</a>
+        </div>
+        <div class="stats-mode" role="group" aria-label="List length">
+          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=${mode}&limit=10">Top 10</a>
+          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/albums?${yq}&sort=${mode}&limit=20">Top 20</a>
+        </div>
+      </header>
+      <section class="stats-list">${list || `<p class="archive-empty">No albums in this filter.</p>`}</section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>Album Hall</span>
+      </footer>
+    </main>
+  `;
+}
+
+function archiveArtistsView(year = "ALL", sort = "weighted", limit = 20) {
+  document.title = `ARTIST BOARD — ARCHIVE — CHARON STUDIO`;
+  document.body.dataset.page = "archive-artists";
+  field.setMode(0.45);
+  const mode =
+    sort === "fav"
+      ? "fav"
+      : sort === "star"
+        ? "star"
+        : sort === "ones" || sort === "numberOnes"
+          ? "ones"
+          : "weighted";
+  const cap = limit === 10 ? 10 : 20;
+  const all = sortArtistBoard(buildArtistBoard(ALL_MONTHS, year), mode);
+  const rows = all.slice(0, cap);
+  const yq = `year=${year}`;
+
+  const list = rows
+    .map((r, i) => {
+      const cover = coverUrl(r.cover, 400);
+      return `
+      <article class="stats-row stats-row-artist">
+        <p class="stats-rank">${pad(i + 1)}</p>
+        <div class="stats-cover">
+          ${cover ? `<img src="${cover}" alt="${escapeAttr(r.artist)}" loading="lazy" />` : ""}
+        </div>
+        <div class="stats-body">
+          <h2 class="stats-title">${escapeHtml(r.artist)}</h2>
+          <p class="stats-line">
+            <strong>${r.favAppearances}</strong> FAV credits
+            · <strong>${r.numberOnes}</strong> × #1
+            · weighted ${r.weighted}
+            · Star ${r.starCount}×
+            ${r.starCount ? `· ${formatArtTime(r.artMinutesTotal)} ART` : ""}
+            ${r.isStarOnly ? " · star only" : ""}
+          </p>
+          <p class="stats-line muted">${r.uniqueMonths} unique months · collabs split on / &amp; feat.</p>
+          <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  return `
+    ${header("archive")}
+    <main class="archive-page">
+      ${archiveSubnav("artists")}
+      ${archiveYearChips("/archive/artists", year, `sort=${mode}&limit=${cap}`)}
+      <header class="archive-hero archive-hero-compact">
+        <p class="kicker">Archive ‣ Artist Board</p>
+        <h1 class="index-title">FAV + Star credit</h1>
+        <p class="index-sub">Top ${cap} of ${all.length} · broader than Star Hall</p>
+        <div class="stats-mode" role="group" aria-label="Sort artists">
+          <a class="month-chip ${mode === "weighted" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=weighted&limit=${cap}">Weighted</a>
+          <a class="month-chip ${mode === "fav" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=fav&limit=${cap}">FAV hits</a>
+          <a class="month-chip ${mode === "ones" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=ones&limit=${cap}">#1</a>
+          <a class="month-chip ${mode === "star" ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=star&limit=${cap}">Star months</a>
+        </div>
+        <div class="stats-mode" role="group" aria-label="List length">
+          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=${mode}&limit=10">Top 10</a>
+          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/artists?${yq}&sort=${mode}&limit=20">Top 20</a>
+        </div>
+      </header>
+      <section class="stats-list">${list || `<p class="archive-empty">No artists in this filter.</p>`}</section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>Artist Board</span>
+      </footer>
+    </main>
+  `;
+}
+
+function archiveRanksView(year = "ALL", sort = "board", limit = 20) {
+  document.title = `RANK DYNAMICS — ARCHIVE — CHARON STUDIO`;
+  document.body.dataset.page = "archive-ranks";
+  field.setMode(0.45);
+  const mode =
+    sort === "ones"
+      ? "ones"
+      : sort === "climb"
+        ? "climb"
+        : sort === "gap"
+          ? "gap"
+          : "board";
+  const cap = limit === 10 ? 10 : 20;
+  const all = sortRankDynamics(buildRankDynamics(ALL_MONTHS, year), mode);
+  const rows = all.slice(0, cap);
+  const yq = `year=${year}`;
+
+  const list = rows
+    .map((r, i) => {
+      const cover = coverUrl(r.cover, 400);
+      const rankTrail = (r.ranks || [])
+        .slice(0, 8)
+        .map((n) => `#${n}`)
+        .join(" → ");
+      return `
+      <article class="stats-row stats-row-rank">
+        <p class="stats-rank">${pad(i + 1)}</p>
+        <div class="stats-cover">
+          ${cover ? `<img src="${cover}" alt="${escapeAttr(r.title)}" loading="lazy" />` : ""}
+        </div>
+        <div class="stats-body">
+          <h2 class="stats-title">${escapeHtml(r.title)}</h2>
+          <p class="stats-line">${escapeHtml(r.artist)}</p>
+          <p class="stats-line">
+            board streak <strong>${r.boardStreak}</strong>
+            · #1 streak <strong>${r.oneStreak}</strong>
+            · best climb <strong>${r.bestClimb}</strong>
+            · max gap <strong>${r.maxGap}</strong> mo
+          </p>
+          <p class="stats-line muted">${r.appearances} appearances · ${escapeHtml(rankTrail)}${(r.ranks || []).length > 8 ? " …" : ""}</p>
+          <div class="stats-month-rail">${monthChipsHtml(r.months)}</div>
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  return `
+    ${header("archive")}
+    <main class="archive-page">
+      ${archiveSubnav("ranks")}
+      ${archiveYearChips("/archive/ranks", year, `sort=${mode}&limit=${cap}`)}
+      <header class="archive-hero archive-hero-compact">
+        <p class="kicker">Archive ‣ Rank Dynamics</p>
+        <h1 class="index-title">Streaks &amp; climbs</h1>
+        <p class="index-sub">Top ${cap} of ${all.length} · titles with 2+ FAV months</p>
+        <div class="stats-mode" role="group" aria-label="Sort rank dynamics">
+          <a class="month-chip ${mode === "board" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=board&limit=${cap}">Board streak</a>
+          <a class="month-chip ${mode === "ones" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=ones&limit=${cap}">#1 streak</a>
+          <a class="month-chip ${mode === "climb" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=climb&limit=${cap}">Best climb</a>
+          <a class="month-chip ${mode === "gap" ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=gap&limit=${cap}">Comeback gap</a>
+        </div>
+        <div class="stats-mode" role="group" aria-label="List length">
+          <a class="month-chip ${cap === 10 ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=${mode}&limit=10">Top 10</a>
+          <a class="month-chip ${cap === 20 ? "is-active" : ""}" href="#/archive/ranks?${yq}&sort=${mode}&limit=20">Top 20</a>
+        </div>
+      </header>
+      <section class="stats-list">${list || `<p class="archive-empty">No multi-month titles in this filter.</p>`}</section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>Rank Dynamics</span>
+      </footer>
+    </main>
+  `;
+}
+
+function archiveSeasonsView(year = "ALL") {
+  document.title = `SEASONS — ARCHIVE — CHARON STUDIO`;
+  document.body.dataset.page = "archive-seasons";
+  field.setMode(0.4);
+  const pack = buildSeasonStats(ALL_MONTHS, year);
+
+  const seasonCards = pack.seasons
+    .map((s) => {
+      const cover = coverUrl(s.cover, 600);
+      return `
+      <article class="season-card">
+        <div class="season-card-cover">
+          ${cover ? `<img src="${cover}" alt="" loading="lazy" />` : ""}
+        </div>
+        <div class="season-card-body">
+          <p class="kicker">${escapeHtml(s.labelZh)} ‣ ${escapeHtml(s.labelEn)}</p>
+          <h2 class="stats-title">${escapeHtml(s.monthsLabel)}</h2>
+          <p class="stats-line">
+            <strong>${s.monthCount}</strong> months
+            · ${s.totalPlays.toLocaleString()} plays
+            · avg ${s.avgPlays.toLocaleString()}
+          </p>
+          <p class="stats-line">
+            Star lead · ${s.topStar ? escapeHtml(`${s.topStar.artist} · ${s.topStar.count}×`) : "—"}
+          </p>
+          <p class="stats-line">
+            FAV.01 lead · ${
+              s.topTrack
+                ? escapeHtml(`${s.topTrack.title} · ${s.topTrack.count}×`)
+                : "—"
+            }
+          </p>
+          <div class="stats-month-rail">${monthChipsHtml(s.months, 8)}</div>
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  const halfCards = pack.halves
+    .map((h) => {
+      return `
+      <article class="season-half">
+        <p class="kicker">${escapeHtml(h.labelZh)} ‣ ${escapeHtml(h.labelEn)}</p>
+        <h3>${escapeHtml(h.monthsLabel)}</h3>
+        <p class="stats-line">
+          <strong>${h.monthCount}</strong> months · ${h.totalPlays.toLocaleString()} plays · avg ${h.avgPlays.toLocaleString()}
+        </p>
+        <p class="stats-line muted">
+          Star · ${h.topStar ? escapeHtml(`${h.topStar.artist} · ${h.topStar.count}×`) : "—"}
+          · FAV.01 · ${h.topTrack ? escapeHtml(`${h.topTrack.title} · ${h.topTrack.count}×`) : "—"}
+        </p>
+      </article>`;
+    })
+    .join("");
+
+  return `
+    ${header("archive")}
+    <main class="archive-page">
+      ${archiveSubnav("seasons")}
+      ${archiveYearChips("/archive/seasons", year)}
+      <header class="archive-hero archive-hero-compact">
+        <p class="kicker">Archive ‣ Seasons</p>
+        <h1 class="index-title">Season &amp; half-year</h1>
+        <p class="index-sub">${year === "ALL" ? "All years" : year} · plays + Star + FAV.01</p>
+      </header>
+      <section class="season-grid" aria-label="Four seasons">
+        ${seasonCards || `<p class="archive-empty">No season data.</p>`}
+      </section>
+      <section class="season-half-grid" aria-label="Half years">
+        ${halfCards}
+      </section>
+      <footer class="site-footer">
+        <span>CHARON STUDIO</span>
+        <span>Season rolls</span>
       </footer>
     </main>
   `;
@@ -1492,6 +1844,38 @@ async function render() {
     const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;
     const colors = await ensurePalette("archive-tracks", sample.tracks);
     if (parseRoute().name === "archive-tracks") field.setPalette(colors);
+  } else if (route.name === "archive-albums") {
+    app.innerHTML = archiveAlbumsView(
+      route.year || "ALL",
+      route.sort || "appearances",
+      route.limit || 20
+    );
+    const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;
+    const colors = await ensurePalette("archive-albums", sample.tracks);
+    if (parseRoute().name === "archive-albums") field.setPalette(colors);
+  } else if (route.name === "archive-artists") {
+    app.innerHTML = archiveArtistsView(
+      route.year || "ALL",
+      route.sort || "weighted",
+      route.limit || 20
+    );
+    const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;
+    const colors = await ensurePalette("archive-artists", sample.tracks);
+    if (parseRoute().name === "archive-artists") field.setPalette(colors);
+  } else if (route.name === "archive-ranks") {
+    app.innerHTML = archiveRanksView(
+      route.year || "ALL",
+      route.sort || "board",
+      route.limit || 20
+    );
+    const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;
+    const colors = await ensurePalette("archive-ranks", sample.tracks);
+    if (parseRoute().name === "archive-ranks") field.setPalette(colors);
+  } else if (route.name === "archive-seasons") {
+    app.innerHTML = archiveSeasonsView(route.year || "ALL");
+    const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;
+    const colors = await ensurePalette("archive-seasons", sample.tracks);
+    if (parseRoute().name === "archive-seasons") field.setPalette(colors);
   } else if (route.name === "archive-plays") {
     app.innerHTML = archivePlaysView(route.year || "ALL");
     const sample = ALL_MONTHS[ALL_MONTHS.length - 1] || LATEST;

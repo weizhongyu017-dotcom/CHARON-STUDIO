@@ -4,6 +4,63 @@
  * Types: "poster" | "track" | "release"
  */
 export const newsItems = {
+  "charlie-puth-grammy-noms-2027": {
+    id: "charlie-puth-grammy-noms-2027",
+    type: "poster",
+    kicker: "Monthly News ‣ Awards",
+    title: "69th GRAMMYs",
+    titleEn: "Nominations",
+    subtitle: "Charlie Puth",
+    namePlacement: "corner",
+    date: "2026.11.16",
+    venue: "1 nomination",
+    venueEn: "The 69th Annual Grammy Awards",
+    image: "./src/media/charlie-puth-grammy-noms-2027.jpg",
+    objectPosition: "50% 42%",
+    posterFit: "split",
+    imageOrient: "landscape",
+    noms: [
+      {
+        cat: "Best Traditional Pop Vocal Album",
+        work: "Whatever's Clever!",
+      },
+    ],
+  },
+  "raye-grammy-noms-2027": {
+    id: "raye-grammy-noms-2027",
+    type: "poster",
+    kicker: "Monthly News ‣ Awards",
+    title: "69th GRAMMYs",
+    titleEn: "Nominations",
+    subtitle: "RAYE",
+    namePlacement: "corner",
+    date: "2026.11.16",
+    venue: "11 nominations",
+    venueEn: "The 69th Annual Grammy Awards",
+    image: "./src/media/raye-grammy-noms-2027.jpg",
+    objectPosition: "50% 50%",
+    posterFit: "split",
+    imageOrient: "landscape",
+    noms: [
+      { cat: "Record Of The Year", work: "WHERE IS MY HUSBAND!" },
+      { cat: "Album Of The Year", work: "This Music May Contain Hope." },
+      { cat: "Song Of The Year", work: "WHERE IS MY HUSBAND!" },
+      { cat: "Best Pop Vocal Album", work: "This Music May Contain Hope." },
+      { cat: "Best Pop Solo Performance", work: "WHERE IS MY HUSBAND!" },
+      { cat: "Best Dance Pop Recording", work: "Life Boat." },
+      {
+        cat: "Best Traditional Pop Vocal Performance",
+        work: "I Hate The Way I Look Today.",
+      },
+      { cat: "Best R&B Performance", work: "" },
+      {
+        cat: "Best Progressive R&B Album",
+        work: "This Music May Contain Hope.",
+      },
+      { cat: "Best Songwriter Of The Year, Non-Classical", work: "" },
+      { cat: "Best Music Video", work: "WHERE IS MY HUSBAND!" },
+    ],
+  },
   "ariana-grande-grammy-noms-2027": {
     id: "ariana-grande-grammy-noms-2027",
     type: "poster",
@@ -16,7 +73,6 @@ export const newsItems = {
     venue: "6 nominations",
     venueEn: "The 69th Annual Grammy Awards",
     image: "./src/media/ariana-grande-grammy-noms-2027.jpg",
-    note: "Recording Academy · nominees announced",
     objectPosition: "50% 42%",
     posterFit: "split",
     noms: [
@@ -93,6 +149,8 @@ export const newsItems = {
 
 /** Newest-first feed. Home teaser = first item only. */
 export const monthlyNewsIds = [
+  "charlie-puth-grammy-noms-2027",
+  "raye-grammy-noms-2027",
   "ariana-grande-grammy-noms-2027",
   "gracie-abrams-dfh-deluxe-2026",
   "shan-yichun-wuxi-2026",
