@@ -35,8 +35,9 @@ import {
   AWARD_EDITION,
   SINGLE_AWARDS,
   SPECIAL_AWARDS,
-} from "./data/awards.js?v=76";
+} from "./data/awards.js?v=110";
 import { AWARD_EXTRA_COVERS } from "./data/award-covers.js?v=110";
+import { getAwardNominees } from "./data/award-nominees.js?v=122";
 import { bindDiscGallery } from "./disc-gallery-three.js?v=72";
 
 const app = document.querySelector("#app");
@@ -205,6 +206,10 @@ function parseRoute() {
     return { name: "news-index" };
   }
 
+  const awardNom = p.match(/^\/award\/([^/]+)\/?$/);
+  if (awardNom) {
+    return { name: "award-nominee", id: decodeURIComponent(awardNom[1]) };
+  }
   if (
     p === "/sonic-luminous-award" ||
     p === "/sonic-luminous-award/" ||
@@ -929,19 +934,163 @@ function awardLandingView() {
   `;
 }
 
+function awardNomineeCard(item, side, depth, rank) {
+  return `
+    <figure class="bmc-card" style="--bmc-depth:${depth}; --bmc-rank:${rank}" data-side="${side}">
+      <div class="bmc-card-frame">
+        <img src="${escapeAttr(item.cover)}" alt="${escapeAttr(`${item.artist} — ${item.work}`)}" loading="lazy" />
+      </div>
+      <figcaption class="bmc-card-artist">${escapeHtml(item.artist)}</figcaption>
+    </figure>
+  `;
+}
+
+function awardNomineeView(id) {
+  const pack = getAwardNominees(id);
+  if (!pack) return null;
+
+  document.title = `${pack.en} — ${AWARD_EDITION.title} — CHARON STUDIO`;
+  document.body.dataset.page = "award-nominee";
+  field.setMode(0.15);
+
+  const list = pack.nominees;
+  // Always 5 left / 5 right for this category when there are 10 nominees.
+  const mid = list.length === 10 ? 5 : Math.floor(list.length / 2);
+  const left = list.slice(0, mid);
+  const right = list.slice(mid);
+  const leftCards = left
+    .map((item, i) => awardNomineeCard(item, "left", left.length - i, i + 1))
+    .join("");
+  const rightCards = right
+    .map((item, i) =>
+      awardNomineeCard(item, "right", i + 1, mid + i + 1)
+    )
+    .join("");
+
+  const rows = list
+    .map(
+      (item, i) => `
+      <li class="bmc-list-row">
+        <span class="bmc-list-num">${pad(i + 1)}</span>
+        <img class="bmc-list-cover" src="${escapeAttr(item.cover)}" alt="" loading="lazy" />
+        <div class="bmc-list-meta">
+          <p class="bmc-list-artist">${escapeHtml(item.artist)}</p>
+          <p class="bmc-list-work">${escapeHtml(item.work)} <span>· ${escapeHtml(item.kindZh || item.kind)}</span></p>
+        </div>
+      </li>`
+    )
+    .join("");
+
+  return `
+    ${header("award")}
+    <main class="bmc-page">
+      <p class="bmc-kicker">${escapeHtml(AWARD_EDITION.title)} ‣ ${pack.year}</p>
+      <section class="bmc-stage" aria-label="${escapeAttr(pack.en)} nominated covers">
+        <div class="bmc-rail">
+          <div class="bmc-side is-left" aria-hidden="true">${leftCards}</div>
+          <button type="button" class="bmc-center" data-bmc-toggle aria-expanded="false" aria-controls="bmc-list">
+            <span class="bmc-center-index">${pad(pack.index)}</span>
+            <span class="bmc-center-en">${escapeHtml(pack.en)}</span>
+            <span class="bmc-center-zh">${escapeHtml(pack.zh)}</span>
+            <span class="bmc-center-status">${escapeHtml(pack.status)}</span>
+            <span class="bmc-center-hint">点击展开提名名单</span>
+          </button>
+          <div class="bmc-side is-right" aria-hidden="true">${rightCards}</div>
+        </div>
+      </section>
+
+      <section id="bmc-list" class="bmc-list-panel" hidden>
+        <header class="bmc-list-head">
+          <h2>Nominated · ${escapeHtml(pack.zh)}</h2>
+          <p>${list.length} 组提名 · 按歌手首字母排序</p>
+        </header>
+        <ol class="bmc-list">${rows}</ol>
+        <a class="bmc-back" href="#/award">← 返回奖项设置</a>
+      </section>
+    </main>
+  `;
+}
+
+function fitBmcRail() {
+  const rail = document.querySelector(".bmc-rail");
+  const stage = document.querySelector(".bmc-stage");
+  if (!rail || !stage) return;
+
+  rail.style.transform = "none";
+  rail.style.setProperty("--bmc-scale", "1");
+
+  const leftN = document.querySelectorAll(".bmc-side.is-left .bmc-card").length || 5;
+  const rightN = document.querySelectorAll(".bmc-side.is-right .bmc-card").length || 5;
+  const total = leftN + rightN;
+  const gaps = Math.max(0, leftN - 1) + Math.max(0, rightN - 1);
+
+  const cs = getComputedStyle(stage);
+  const padX =
+    (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  // Real content box — must fit all 5+5 covers + center title.
+  const stageInner = Math.max(360, stage.clientWidth - padX);
+  const center = Math.min(220, Math.max(168, stageInner * 0.16));
+  const sidePad = 12;
+  const grow = 8 * 2;
+  const availCards = Math.max(280, stageInner - center - sidePad);
+  const gap = Math.max(10, Math.min(18, availCards * 0.014));
+  // Prefer larger covers; scale the whole rail down only if needed.
+  const ideal = Math.min(188, Math.max(128, availCards / total + 18));
+  const fitted = Math.max(
+    118,
+    Math.min(ideal, (availCards - gaps * gap - grow) / total)
+  );
+  rail.style.setProperty("--bmc-card", `${Math.round(fitted)}px`);
+  rail.style.setProperty("--bmc-gap", `${Math.round(gap)}px`);
+  rail.style.setProperty("--bmc-center", `${Math.round(center)}px`);
+
+  requestAnimationFrame(() => {
+    const used = rail.scrollWidth;
+    if (used > stageInner + 2) {
+      const scale = Math.max(0.72, (stageInner - 8) / used);
+      rail.style.setProperty("--bmc-scale", String(scale));
+    }
+  });
+}
+
+function bindAwardNomineeToggle() {
+  const btn = document.querySelector("[data-bmc-toggle]");
+  const panel = document.getElementById("bmc-list");
+  if (!btn || !panel) return;
+  btn.addEventListener("click", () => {
+    const open = panel.hasAttribute("hidden");
+    if (open) {
+      panel.removeAttribute("hidden");
+      btn.setAttribute("aria-expanded", "true");
+      btn.classList.add("is-open");
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      panel.setAttribute("hidden", "");
+      btn.setAttribute("aria-expanded", "false");
+      btn.classList.remove("is-open");
+    }
+  });
+}
+
 function awardView() {
   document.title = `${AWARD_EDITION.title}(${AWARD_EDITION.year}) — CHARON STUDIO`;
   document.body.dataset.page = "award";
   field.setMode(0.35);
 
-  const singles = SINGLE_AWARDS.map(
-    (a, i) => `
-    <li class="award-item">
+  const singles = SINGLE_AWARDS.map((a, i) => {
+    const href = a.id ? `#/award/${encodeURIComponent(a.id)}` : "";
+    const status = a.status
+      ? `<p class="award-status">${escapeHtml(a.status)}</p>`
+      : "";
+    const inner = `
       <span class="award-index">${pad(i + 1)}</span>
       <h3 class="award-zh">${escapeHtml(a.zh)}</h3>
       <p class="award-en">${escapeHtml(a.en)}</p>
-    </li>`
-  ).join("");
+      ${status}`;
+    return href
+      ? `<li class="award-item award-item-link"><a href="${href}">${inner}</a></li>`
+      : `<li class="award-item">${inner}</li>`;
+  }).join("");
 
   const specials = SPECIAL_AWARDS.map(
     (a, i) => `
@@ -2155,6 +2304,25 @@ async function render() {
     app.innerHTML = awardView();
     const colors = await ensureHomePalette();
     if (parseRoute().name === "award") field.setPalette(colors);
+  } else if (route.name === "award-nominee") {
+    const html = awardNomineeView(route.id);
+    if (!html) {
+      location.hash = "#/award";
+      return;
+    }
+    app.innerHTML = html;
+    bindAwardNomineeToggle();
+    const runFit = () => fitBmcRail();
+    requestAnimationFrame(() => {
+      runFit();
+      requestAnimationFrame(runFit);
+    });
+    document.querySelectorAll(".bmc-card-frame img").forEach((img) => {
+      if (img.complete) return;
+      img.addEventListener("load", runFit, { once: true });
+    });
+    const colors = await ensureHomePalette();
+    if (parseRoute().name === "award-nominee") field.setPalette(colors);
   } else if (route.name === "home") {
     app.innerHTML = homeView();
     requestAnimationFrame(fitMast);
@@ -2172,5 +2340,6 @@ window.addEventListener("hashchange", () => {
 });
 window.addEventListener("resize", () => {
   if (document.body.dataset.page === "home") fitMast();
+  if (document.body.dataset.page === "award-nominee") fitBmcRail();
 });
 render();

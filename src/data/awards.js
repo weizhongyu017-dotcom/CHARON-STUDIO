@@ -33,7 +33,12 @@ export const SINGLE_AWARDS = [
   { zh: "最佳歌唱单曲", en: "Best Vocal Single" },
   { zh: "最佳个人表演", en: "Best Single Performance" },
   { zh: "最佳现场表演", en: "Best Live Performance" },
-  { zh: "最佳音乐封面", en: "Best Music Cover" },
+  {
+    zh: "最佳音乐封面",
+    en: "Best Music Cover",
+    id: "best-music-cover",
+    status: "NOMINATED",
+  },
 ];
 
 /** 专项奖 */

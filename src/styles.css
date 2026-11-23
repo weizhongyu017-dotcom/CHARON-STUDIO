@@ -2363,6 +2363,8 @@ body[data-page="award-home"] .field {
 .sla-title-award {
   display: block;
   font-size: clamp(42px, 9.2vw, 118px);
+  text-transform: none;
+  transform: none;
 }
 
 .sla-title-luminous {
@@ -2507,6 +2509,349 @@ body[data-page="award-home"] .field {
 
   .sla-row.is-rtl .sla-track {
     transform: translateX(-25%);
+  }
+}
+
+/* —— Best Music Cover nominated showcase —— */
+body[data-page="award-nominee"] .field {
+  opacity: 0.22;
+}
+
+.bmc-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  padding: 92px clamp(10px, 1.4vw, 28px) 8vh;
+  overflow-x: clip;
+}
+
+.bmc-kicker {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  margin-bottom: 1.2vh;
+}
+
+.bmc-stage {
+  min-height: min(82vh, 900px);
+  width: 100%;
+  display: grid;
+  place-items: center;
+  perspective: 2400px;
+  perspective-origin: 50% 46%;
+  overflow: visible;
+  /* Leave room for right nav, but keep both outer covers on-screen. */
+  padding-right: clamp(108px, 11vw, 168px);
+  padding-left: clamp(8px, 1vw, 20px);
+  box-sizing: border-box;
+}
+
+.bmc-rail {
+  --bmc-card: 168px;
+  --bmc-gap: 14px;
+  --bmc-center: 210px;
+  --bmc-scale: 1;
+  width: max-content;
+  display: grid;
+  grid-template-columns: max-content var(--bmc-center) max-content;
+  align-items: center;
+  justify-self: center;
+  gap: clamp(8px, 0.9vw, 16px);
+  transform: scale(var(--bmc-scale));
+  transform-style: preserve-3d;
+  transform-origin: center center;
+}
+
+.bmc-side {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--bmc-gap);
+  transform-style: preserve-3d;
+  width: max-content;
+  padding: 36px 2px 14px;
+  overflow: visible;
+}
+
+.bmc-side.is-left {
+  justify-content: flex-end;
+}
+
+.bmc-side.is-right {
+  justify-content: flex-start;
+}
+
+.bmc-card {
+  --bmc-depth: 1;
+  --bmc-rank: 1;
+  flex: 0 0 auto;
+  width: calc(var(--bmc-card) + (var(--bmc-depth) - 1) * 8px);
+  margin: 0;
+  transform-style: preserve-3d;
+  z-index: calc(10 - var(--bmc-depth));
+}
+
+.bmc-side.is-left .bmc-card {
+  transform:
+    translateZ(calc(var(--bmc-depth) * 10px - 10px))
+    rotateY(calc(5deg + var(--bmc-depth) * 3deg))
+    scale(calc(0.9 + var(--bmc-depth) * 0.04));
+}
+
+.bmc-side.is-right .bmc-card {
+  transform:
+    translateZ(calc(var(--bmc-depth) * 10px - 10px))
+    rotateY(calc(-5deg - var(--bmc-depth) * 3deg))
+    scale(calc(0.9 + var(--bmc-depth) * 0.04));
+}
+
+.bmc-card-frame {
+  border-radius: 3px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: #141820;
+  box-shadow:
+    0 24px 52px rgba(0, 0, 0, 0.52),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  animation: bmc-drift 8s ease-in-out infinite;
+  animation-delay: calc(var(--bmc-depth) * -0.55s);
+}
+
+.bmc-card-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bmc-card-artist {
+  margin-top: 14px;
+  text-align: center;
+  font-size: clamp(12px, 0.95vw, 15px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  opacity: 0.86;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.bmc-center {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+  padding: 22px 10px;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  position: relative;
+  z-index: 20;
+  transition: transform 0.45s var(--ease), opacity 0.45s var(--ease);
+}
+
+.bmc-center:hover,
+.bmc-center:focus-visible {
+  transform: translateY(-4px);
+}
+
+.bmc-center-index {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  opacity: 0.45;
+}
+
+.bmc-center-en {
+  font-family: var(--serif-display);
+  font-size: clamp(28px, 3.2vw, 46px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: 0.02em;
+  max-width: 11ch;
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+
+.bmc-center-zh {
+  font-family: "Noto Sans SC", var(--sans);
+  font-size: clamp(14px, 1.2vw, 18px);
+  letter-spacing: 0.28em;
+  opacity: 0.72;
+}
+
+.bmc-center-status {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 5px 10px;
+}
+
+.bmc-center-hint {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.42;
+}
+
+.bmc-center.is-open .bmc-center-hint {
+  opacity: 0.7;
+}
+
+.bmc-list-panel {
+  margin: 6vh auto 0;
+  max-width: 760px;
+  padding-top: 4vh;
+  border-top: 1px solid var(--hair);
+  animation: sla-rise 0.55s var(--ease) both;
+}
+
+.bmc-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 18px;
+  margin-bottom: 22px;
+}
+
+.bmc-list-head h2 {
+  font-family: var(--serif-display);
+  font-size: clamp(24px, 2.4vw, 34px);
+  font-weight: 400;
+}
+
+.bmc-list-head p {
+  font-size: var(--nav);
+  opacity: 0.5;
+  align-self: end;
+}
+
+.bmc-list {
+  list-style: none;
+  display: grid;
+  gap: 0;
+}
+
+.bmc-list-row {
+  display: grid;
+  grid-template-columns: 36px 56px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bmc-list-num {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  opacity: 0.4;
+}
+
+.bmc-list-cover {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.bmc-list-artist {
+  font-size: clamp(15px, 1.2vw, 18px);
+  font-weight: 600;
+}
+
+.bmc-list-work {
+  margin-top: 4px;
+  font-size: 13px;
+  opacity: 0.55;
+  line-height: 1.4;
+}
+
+.bmc-list-work span {
+  opacity: 0.7;
+}
+
+.bmc-back {
+  display: inline-block;
+  margin-top: 28px;
+  font-size: var(--nav);
+  letter-spacing: 0.08em;
+  opacity: 0.55;
+}
+
+.bmc-back:hover,
+.bmc-back:focus-visible {
+  opacity: 1;
+}
+
+.award-item-link a {
+  display: contents;
+  color: inherit;
+  text-decoration: none;
+}
+
+.award-item-link:hover .award-zh,
+.award-item-link:hover .award-en {
+  opacity: 0.82;
+}
+
+.award-status {
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+@keyframes bmc-drift {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+@media (max-width: 900px) {
+  .bmc-rail {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .bmc-side {
+    justify-content: center !important;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    gap: 12px;
+  }
+
+  .bmc-side.is-left .bmc-card,
+  .bmc-side.is-right .bmc-card {
+    transform: none;
+    width: clamp(112px, 28vw, 148px);
+  }
+
+  .bmc-rail {
+    transform: none;
+  }
+
+  .bmc-card-frame {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bmc-card-frame {
+    animation: none;
   }
 }
 
