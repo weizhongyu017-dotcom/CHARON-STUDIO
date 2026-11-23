@@ -161,22 +161,110 @@ function deepenMore(rgb) {
   ];
 }
 
+function satOf(rgb) {
+  const max = Math.max(rgb[0], rgb[1], rgb[2]);
+  const min = Math.min(rgb[0], rgb[1], rgb[2]);
+  return max - min;
+}
+
+function nightTone(rgb, depth = 0.42) {
+  // Keep cover hue, pull into a readable nocturnal mid instead of purple mush.
+  const ink = [0.02, 0.025, 0.04];
+  const kept = [
+    Math.max(0.04, Math.min(0.72, rgb[0] * 0.62 + 0.05)),
+    Math.max(0.04, Math.min(0.7, rgb[1] * 0.58 + 0.04)),
+    Math.max(0.05, Math.min(0.74, rgb[2] * 0.64 + 0.06)),
+  ];
+  return mix3(ink, kept, depth);
+}
+
+function sampleCoverMany(url, size = 40, limit = 5) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, size, size);
+        const { data } = ctx.getImageData(0, 0, size, size);
+        const buckets = new Map();
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3];
+          if (a < 180) continue;
+          const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          if (lum < 14 || lum > 248) continue;
+          const key = `${r >> 4},${g >> 4},${b >> 4}`;
+          const prev = buckets.get(key) || { r: 0, g: 0, b: 0, n: 0 };
+          prev.r += r;
+          prev.g += g;
+          prev.b += b;
+          prev.n += 1;
+          buckets.set(key, prev);
+        }
+        const ranked = [...buckets.values()]
+          .map((v) => {
+            const rgb = [v.r / v.n / 255, v.g / v.n / 255, v.b / v.n / 255];
+            return { rgb, n: v.n, sat: satOf(rgb) };
+          })
+          .sort((a, b) => b.sat * 1.4 * b.n + b.n - (a.sat * 1.4 * a.n + a.n));
+
+        const picked = [];
+        for (const row of ranked) {
+          if (picked.length >= limit) break;
+          const far = picked.every((p) => {
+            const dr = p[0] - row.rgb[0];
+            const dg = p[1] - row.rgb[1];
+            const db = p[2] - row.rgb[2];
+            return dr * dr + dg * dg + db * db > 0.028;
+          });
+          if (far || !picked.length) picked.push(row.rgb);
+        }
+        resolve(picked);
+      } catch {
+        resolve([]);
+      }
+    };
+    img.onerror = () => resolve([]);
+    img.src = url;
+  });
+}
+
 /**
- * Album review field: same cover chroma as before, pulled darker/nocturnal.
+ * Album review field: multi-swatch from cover, nocturnal but hue-faithful.
+ * Low-chroma covers (B&W) get a graphite silver field instead of home blue bleed.
  */
 export async function paletteFromCoverDeep(coverUrl) {
-  const base = HOME_PALETTE.map((c) => [...c]);
-  const sampled = coverUrl ? await sampleCover(coverUrl) : null;
-  const accent = sampled || [0.2, 0.35, 0.55];
-  const deep = deepenMore(accent);
-  const mid = deepen(mix3(accent, deep, 0.45));
-  const cool = deepenMore(mix3(accent, [accent[2], accent[0], accent[1]], 0.28));
-  const hot = mix3(deepen(accent), boost(accent, 0.08), 0.35);
+  const swatches = coverUrl ? await sampleCoverMany(coverUrl) : [];
+  const accent = swatches[0] || [0.28, 0.42, 0.62];
+  const second = swatches[1] || mix3(accent, [accent[2], accent[0], accent[1]], 0.35);
+  const third = swatches[2] || mix3(accent, second, 0.5);
+  const mono = satOf(accent) < 0.08 && satOf(second) < 0.1;
 
+  if (mono) {
+    return [
+      [0.05, 0.055, 0.07],
+      [0.14, 0.15, 0.18],
+      [0.28, 0.3, 0.34],
+      [0.62, 0.64, 0.68],
+    ];
+  }
+
+  const deep = nightTone(accent, 0.5);
+  const mid = nightTone(boost(second, 0.12), 0.62);
+  const cool = nightTone(third, 0.58);
+  const hot = mix3(nightTone(accent, 0.72), boost(accent, 0.28), 0.55);
+
+  // Tiny home blend only for air — cover hue stays dominant.
   return [
-    mix3(base[0], deep, 0.9),
-    mix3(base[1], mid, 0.86),
-    mix3(base[2], cool, 0.82),
-    mix3(base[3], hot, 0.78),
+    mix3(HOME_PALETTE[0], deep, 0.94),
+    mix3(HOME_PALETTE[1], mid, 0.9),
+    mix3(HOME_PALETTE[2], cool, 0.88),
+    mix3(HOME_PALETTE[3], hot, 0.92),
   ];
 }

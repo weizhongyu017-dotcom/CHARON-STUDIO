@@ -5,7 +5,7 @@ import {
   paletteFromHomeTrack,
   paletteFromHues,
   paletteFromTracks,
-} from "./palette.js?v=62";
+} from "./palette.js?v=107";
 import {
   ALL_MONTHS,
   LATEST_MONTH,
@@ -30,7 +30,7 @@ import {
   yearWrap,
 } from "./data/stats.js?v=102";
 import { monthlyNewsIds, newsItems } from "./data/news.js?v=102";
-import { reviewIds, reviewItems } from "./data/reviews.js?v=62";
+import { reviewIds, reviewItems } from "./data/reviews.js?v=106";
 import {
   AWARD_EDITION,
   SINGLE_AWARDS,
@@ -185,7 +185,10 @@ function parseArchiveQuery(search) {
 function parseRoute() {
   const raw = path();
   const [p, query = ""] = raw.split("?");
-  if (p === "/" || p === "") return { name: "home" };
+  if (p === "/" || p === "") return { name: "award-home" };
+  if (p === "/studio" || p === "/studio/" || p === "/home" || p === "/home/") {
+    return { name: "home" };
+  }
   const reviewDetail = p.match(/^\/album-review\/([^/]+)$/);
   if (reviewDetail) {
     return { name: "review-detail", id: decodeURIComponent(reviewDetail[1]) };
@@ -259,7 +262,7 @@ function parseRoute() {
       month: Number(monthMatch[2]),
     };
   }
-  return { name: "home" };
+  return { name: "award-home" };
 }
 
 function header(page) {
@@ -267,7 +270,7 @@ function header(page) {
   const reportOn = page === "report" || page === "star";
   return `
     <header class="site-header">
-      <a class="wordmark" href="#/" aria-label="CHARON STUDIO home">CHARON <i></i> <span>studio</span></a>
+      <a class="wordmark" href="#/studio" aria-label="CHARON STUDIO 原主页">CHARON <i></i> <span>studio</span></a>
       <nav class="nav-cols" aria-label="Primary">
         <ul class="nav-list">
           <li><a href="#/monthly-news" class="${page === "news" ? "is-active" : ""}">Monthly News</a></li>
@@ -587,6 +590,70 @@ function bindReviewScroll() {
   });
 }
 
+const REVIEW_DRAFT_PREFIX = "charon-review-draft:";
+
+function reviewDraftKey(id) {
+  return `${REVIEW_DRAFT_PREFIX}${id}`;
+}
+
+function loadReviewDraft(id, fallback = "") {
+  try {
+    const raw = localStorage.getItem(reviewDraftKey(id));
+    if (raw == null) return String(fallback || "");
+    return String(raw);
+  } catch {
+    return String(fallback || "");
+  }
+}
+
+function saveReviewDraft(id, text) {
+  try {
+    localStorage.setItem(reviewDraftKey(id), String(text ?? ""));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function bindReviewEditor() {
+  const form = document.querySelector("[data-review-editor]");
+  if (!form) return;
+  const id = form.getAttribute("data-review-id");
+  const ta = form.querySelector("textarea");
+  const count = form.querySelector("[data-review-count]");
+  const status = form.querySelector("[data-review-status]");
+  const limit = Number(form.getAttribute("data-review-limit") || 1000);
+  if (!id || !ta) return;
+
+  let timer = 0;
+  const paint = (state) => {
+    if (count) count.textContent = `${ta.value.length}/${limit}`;
+    if (!status) return;
+    status.textContent =
+      state === "saving" ? "保存中…" : state === "error" ? "保存失败" : "已保存";
+    status.dataset.state = state || "saved";
+  };
+
+  const persist = () => {
+    const ok = saveReviewDraft(id, ta.value.slice(0, limit));
+    paint(ok ? "saved" : "error");
+  };
+
+  ta.addEventListener("input", () => {
+    if (ta.value.length > limit) ta.value = ta.value.slice(0, limit);
+    paint("saving");
+    window.clearTimeout(timer);
+    timer = window.setTimeout(persist, 280);
+  });
+
+  ta.addEventListener("blur", () => {
+    window.clearTimeout(timer);
+    persist();
+  });
+
+  paint(ta.value ? "saved" : "saved");
+}
+
 function reviewTracks(item) {
   const rows = (item.tracks || [])
     .map(
@@ -614,15 +681,27 @@ function reviewTracks(item) {
 }
 
 function reviewBody(item) {
-  const text = item.review || "";
   const limit = item.reviewLimit || 1000;
+  const text = loadReviewDraft(item.id, item.review || "").slice(0, limit);
   return `
     <section class="review-body" aria-label="Review">
       <header class="review-section-head">
         <h2>Review</h2>
-        <span class="review-count">${text.length}/${limit}</span>
+        <div class="review-meta">
+          <span class="review-status" data-review-status data-state="saved">已保存</span>
+          <span class="review-count" data-review-count>${text.length}/${limit}</span>
+        </div>
       </header>
-      <div class="review-text">${escapeHtml(text)}</div>
+      <form class="review-editor" data-review-editor data-review-id="${escapeAttr(item.id)}" data-review-limit="${limit}">
+        <label class="visually-hidden" for="review-input-${escapeAttr(item.id)}">填写乐评意见</label>
+        <textarea
+          id="review-input-${escapeAttr(item.id)}"
+          class="review-text review-text-input"
+          rows="8"
+          maxlength="${limit}"
+          placeholder="在这里填写乐评意见，输入后会自动保存到本机…"
+        >${escapeHtml(text)}</textarea>
+      </form>
     </section>
   `;
 }
@@ -641,14 +720,15 @@ function applyReviewTheme(colors) {
   page.style.setProperty("--rv1", rgbCss(colors[1], 1));
   page.style.setProperty("--rv2", rgbCss(colors[2], 1));
   page.style.setProperty("--rv3", rgbCss(colors[3], 1));
-  page.style.setProperty("--rv-glow", rgbCss(colors[3], 0.28));
-  page.style.setProperty("--rv-panel", rgbCss(colors[0], 0.4));
-  page.style.setProperty("--rv-line", rgbCss(colors[2], 0.26));
-  page.style.setProperty("--rv-ring", rgbCss(colors[3], 0.82));
+  page.style.setProperty("--rv-glow", rgbCss(colors[3], 0.42));
+  page.style.setProperty("--rv-veil", rgbCss(colors[2], 0.34));
+  page.style.setProperty("--rv-panel", rgbCss(colors[0], 0.5));
+  page.style.setProperty("--rv-line", rgbCss(colors[2], 0.3));
+  page.style.setProperty("--rv-ring", rgbCss(colors[3], 0.88));
 }
 
 async function ensureReviewPalette(item) {
-  const key = `review-deep-${item.id}`;
+  const key = `review-deep-v2-${item.id}`;
   if (paletteCache.has(key)) return paletteCache.get(key);
   const colors = await paletteFromCoverDeep(item.cover);
   paletteCache.set(key, colors);
@@ -717,6 +797,99 @@ function reviewIndexView() {
         <span>CHARON STUDIO</span>
         <span>Album reviews</span>
       </footer>
+    </main>
+  `;
+}
+
+function awardYearFavCovers(year = AWARD_EDITION.year) {
+  const months = YEAR_MAP[year]?.months || [];
+  const seen = new Set();
+  const list = [];
+  for (const m of months) {
+    for (const t of m.tracks || []) {
+      const src = coverUrl(t.cover, 400);
+      if (!src || seen.has(src)) continue;
+      seen.add(src);
+      list.push({
+        src,
+        title: t.title || "",
+        artist: t.artist || "",
+        month: m.labelZh || m.labelEn || "",
+      });
+    }
+  }
+  return list;
+}
+
+function splitCoverRows(covers, rowCount = 4) {
+  if (!covers.length) return Array.from({ length: rowCount }, () => []);
+  const rows = Array.from({ length: rowCount }, () => []);
+  covers.forEach((c, i) => rows[i % rowCount].push(c));
+  // Keep each row dense enough for a seamless marquee.
+  const minPerRow = 8;
+  return rows.map((row, i) => {
+    if (!row.length) return covers.slice();
+    let out = row.slice();
+    let cursor = i;
+    while (out.length < minPerRow) {
+      out.push(covers[cursor % covers.length]);
+      cursor += 1;
+    }
+    return out;
+  });
+}
+
+function awardMarqueeRow(covers, direction, duration) {
+  const tiles = covers
+    .map(
+      (c) => `
+      <figure class="sla-tile">
+        <img src="${escapeAttr(c.src)}" alt="${escapeAttr(`${c.title} — ${c.artist}`)}" loading="lazy" decoding="async" />
+      </figure>`
+    )
+    .join("");
+  return `
+    <div class="sla-row is-${direction}" style="--sla-duration:${duration}s" aria-hidden="true">
+      <div class="sla-track">${tiles}${tiles}</div>
+    </div>
+  `;
+}
+
+function awardLandingView() {
+  document.title = `${AWARD_EDITION.title} ${AWARD_EDITION.year} — CHARON STUDIO`;
+  document.body.dataset.page = "award-home";
+  field.setMode(0);
+
+  const covers = awardYearFavCovers(AWARD_EDITION.year);
+  const rows = splitCoverRows(covers, 4);
+  const durations = [48, 56, 44, 60];
+  const directions = ["ltr", "rtl", "ltr", "rtl"];
+  const marquee = rows
+    .map((row, i) => awardMarqueeRow(row, directions[i], durations[i]))
+    .join("");
+
+  return `
+    <header class="sla-top">
+      <a class="sla-wordmark" href="#/studio" aria-label="返回 CHARON STUDIO 原主页">CHARON <i></i> <span>studio</span></a>
+      <a class="sla-top-link" href="#/award">奖项设置</a>
+    </header>
+    <main class="sla-landing">
+      <div class="sla-veil" aria-hidden="true"></div>
+      <div class="sla-glow" aria-hidden="true"></div>
+      <section class="sla-marquee" aria-hidden="true">${marquee}</section>
+      <section class="sla-hero">
+        <p class="sla-kicker">${escapeHtml(AWARD_EDITION.studio)} ‣ ${AWARD_EDITION.year}</p>
+        <h1 class="sla-title">
+          <span class="sla-title-sonic">Sonic</span>
+          <span class="sla-title-luminous">Luminous</span>
+          <span class="sla-title-award">Award</span>
+        </h1>
+        <p class="sla-sub">用音乐铭记我们的 <em>${AWARD_EDITION.year}</em></p>
+        <div class="sla-actions">
+          <a class="sla-btn" href="#/award">进入奖项</a>
+          <a class="sla-btn is-ghost" href="#/studio">进入工作室</a>
+        </div>
+      </section>
     </main>
   `;
 }
@@ -1920,6 +2093,7 @@ async function render() {
   } else if (route.name === "review-index") {
     app.innerHTML = reviewIndexView();
     bindReviewScroll();
+    bindReviewEditor();
     const target = LATEST_REVIEW || ALBUM_REVIEWS[0];
     const colors = target
       ? await ensureReviewPalette(target)
@@ -1936,6 +2110,7 @@ async function render() {
     }
     app.innerHTML = reviewDetailView(item);
     bindReviewScroll();
+    bindReviewEditor();
     const colors = await ensureReviewPalette(item);
     if (parseRoute().name === "review-detail") {
       field.setPalette(colors);
@@ -1945,11 +2120,14 @@ async function render() {
     app.innerHTML = awardView();
     const colors = await ensureHomePalette();
     if (parseRoute().name === "award") field.setPalette(colors);
-  } else {
+  } else if (route.name === "home") {
     app.innerHTML = homeView();
     requestAnimationFrame(fitMast);
     const colors = await ensureHomePalette();
     if (parseRoute().name === "home") field.setPalette(colors);
+  } else {
+    app.innerHTML = awardLandingView();
+    field.setPalette(HOME_PALETTE);
   }
   window.scrollTo(0, 0);
 }

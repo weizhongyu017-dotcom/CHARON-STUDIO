@@ -22,6 +22,18 @@
   padding: 0;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 html,
 body {
   min-height: 100%;
@@ -2154,6 +2166,350 @@ button:focus-visible,
   }
 }
 
+/* —— SONIC LUMINOUS AWARD LANDING —— */
+body[data-page="award-home"] {
+  background: #05070d;
+}
+
+body[data-page="award-home"] .field {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sla-top {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px var(--pad);
+  pointer-events: none;
+}
+
+.sla-wordmark,
+.sla-top-link {
+  pointer-events: auto;
+  color: rgba(255, 255, 255, 0.86);
+  text-decoration: none;
+}
+
+.sla-wordmark {
+  font-size: var(--nav);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.sla-wordmark i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin: 0 4px 1px;
+  border-radius: 50%;
+  background: rgba(220, 236, 255, 0.9);
+  box-shadow: 0 0 12px rgba(170, 210, 255, 0.65);
+}
+
+.sla-wordmark span {
+  font-weight: 500;
+  opacity: 0.72;
+}
+
+.sla-top-link {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  transition: opacity 0.35s var(--ease);
+}
+
+.sla-top-link:hover,
+.sla-top-link:focus-visible {
+  opacity: 1;
+}
+
+.sla-landing {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(48, 78, 130, 0.28), transparent 68%),
+    radial-gradient(ellipse 90% 70% at 50% 100%, rgba(8, 12, 24, 0.95), #05070d 70%),
+    linear-gradient(180deg, #0a1020 0%, #05070d 100%);
+}
+
+.sla-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(5, 7, 13, 0.35) 0%, rgba(5, 7, 13, 0.05) 26%, rgba(5, 7, 13, 0.08) 58%, rgba(5, 7, 13, 0.62) 100%),
+    radial-gradient(ellipse 48% 42% at 50% 48%, rgba(5, 7, 13, 0.18), rgba(5, 7, 13, 0.55) 78%);
+}
+
+.sla-glow {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 3;
+  width: min(72vw, 720px);
+  height: min(42vw, 420px);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(190, 220, 255, 0.16), transparent 68%);
+  filter: blur(8px);
+  animation: sla-breathe 7.5s ease-in-out infinite;
+}
+
+.sla-marquee {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(10px, 1.4vw, 18px);
+  padding: 12vh 0;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+
+.sla-row {
+  overflow: hidden;
+  width: 100%;
+}
+
+.sla-track {
+  display: flex;
+  width: max-content;
+  gap: clamp(10px, 1.2vw, 16px);
+  will-change: transform;
+}
+
+.sla-row.is-ltr .sla-track {
+  animation: sla-ltr var(--sla-duration, 48s) linear infinite;
+}
+
+.sla-row.is-rtl .sla-track {
+  animation: sla-rtl var(--sla-duration, 56s) linear infinite;
+}
+
+.sla-tile {
+  flex: 0 0 auto;
+  width: clamp(104px, 13vw, 168px);
+  aspect-ratio: 1;
+  margin: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #121722;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  opacity: 0.96;
+  filter: saturate(1.05) brightness(1.02);
+  transition: opacity 0.45s var(--ease), filter 0.45s var(--ease), transform 0.45s var(--ease);
+}
+
+.sla-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sla-landing:hover .sla-tile {
+  opacity: 1;
+  filter: saturate(1.08) brightness(1.05);
+}
+
+.sla-hero {
+  position: relative;
+  z-index: 4;
+  width: min(920px, calc(100% - 2 * var(--pad)));
+  text-align: center;
+  padding: 8vh 0;
+  animation: sla-rise 1.15s var(--ease) both;
+}
+
+.sla-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(220, 232, 255, 0.55);
+  margin-bottom: 22px;
+}
+
+.sla-title {
+  display: grid;
+  gap: 0.02em;
+  margin: 0;
+  font-family: var(--serif-display);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  color: #f4f7ff;
+  text-shadow:
+    0 0 28px rgba(180, 210, 255, 0.28),
+    0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.sla-title-sonic,
+.sla-title-luminous,
+.sla-title-award {
+  display: block;
+  font-size: clamp(42px, 9.2vw, 118px);
+}
+
+.sla-title-luminous {
+  font-style: italic;
+  color: #e8f0ff;
+}
+
+.sla-sub {
+  margin-top: clamp(22px, 3.5vh, 36px);
+  font-family: "Noto Sans SC", var(--sans);
+  font-size: clamp(15px, 1.55vw, 22px);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  color: rgba(230, 238, 255, 0.72);
+}
+
+.sla-sub em {
+  font-family: var(--serif-display);
+  font-style: italic;
+  font-size: 1.28em;
+  letter-spacing: 0.04em;
+  color: #fff;
+  margin-left: 0.12em;
+}
+
+.sla-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 16px;
+  margin-top: clamp(28px, 4.5vh, 44px);
+}
+
+.sla-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 132px;
+  padding: 12px 22px;
+  border: 1px solid rgba(220, 232, 255, 0.42);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4f7ff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  transition: background 0.35s var(--ease), border-color 0.35s var(--ease), transform 0.35s var(--ease);
+}
+
+.sla-btn:hover,
+.sla-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.7);
+  transform: translateY(-1px);
+}
+
+.sla-btn.is-ghost {
+  background: transparent;
+  border-color: rgba(220, 232, 255, 0.22);
+  opacity: 0.78;
+}
+
+@keyframes sla-ltr {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes sla-rtl {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sla-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
+@keyframes sla-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .sla-marquee {
+    gap: 8px;
+    padding: 16vh 0;
+  }
+
+  .sla-tile {
+    width: clamp(78px, 22vw, 110px);
+  }
+
+  .sla-title-sonic,
+  .sla-title-luminous,
+  .sla-title-award {
+    font-size: clamp(36px, 12vw, 64px);
+  }
+
+  .sla-sub {
+    letter-spacing: 0.1em;
+  }
+
+  .sla-actions {
+    width: 100%;
+  }
+
+  .sla-btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sla-row.is-ltr .sla-track,
+  .sla-row.is-rtl .sla-track,
+  .sla-glow,
+  .sla-hero {
+    animation: none !important;
+  }
+
+  .sla-row.is-rtl .sla-track {
+    transform: translateX(-25%);
+  }
+}
+
 /* —— SONIC LUMINOUS AWARD —— */
 .award-page {
   position: relative;
@@ -2338,25 +2694,27 @@ button:focus-visible,
 /* —— New Album Review (cover-driven field, no paper card) —— */
 body[data-page="review"] .field {
   opacity: 1;
-  filter: none;
+  filter: saturate(1.18) contrast(1.06) brightness(1.04);
 }
 
 .review-page {
-  --rv0: #1a1018;
-  --rv1: #2a1824;
-  --rv2: #3d2436;
-  --rv3: #c9a27e;
-  --rv-glow: rgba(201, 162, 126, 0.4);
-  --rv-panel: rgba(26, 16, 24, 0.36);
+  --rv0: #10161c;
+  --rv1: #1a2834;
+  --rv2: #2e4a5c;
+  --rv3: #7eb0c9;
+  --rv-glow: rgba(126, 176, 201, 0.42);
+  --rv-veil: rgba(46, 74, 92, 0.34);
+  --rv-panel: rgba(16, 22, 28, 0.5);
   --rv-line: rgba(255, 255, 255, 0.16);
-  --rv-ring: rgba(255, 255, 255, 0.75);
+  --rv-ring: rgba(255, 255, 255, 0.78);
   position: relative;
   z-index: 1;
   color: #fff;
   background:
-    radial-gradient(90% 70% at 78% 18%, var(--rv-glow), transparent 58%),
-    radial-gradient(70% 55% at 12% 80%, var(--rv-panel), transparent 62%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.22), transparent 40%);
+    radial-gradient(88% 68% at 72% 22%, var(--rv-glow), transparent 60%),
+    radial-gradient(70% 58% at 18% 78%, var(--rv-veil), transparent 64%),
+    radial-gradient(55% 45% at 50% 48%, var(--rv-panel), transparent 70%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 42%);
 }
 
 .review-aura {
@@ -2365,10 +2723,11 @@ body[data-page="review"] .field {
   inset: 0 0 auto;
   height: 100vh;
   background:
-    radial-gradient(circle at 70% 40%, var(--rv3), transparent 55%),
-    radial-gradient(circle at 30% 60%, var(--rv1), transparent 60%);
-  opacity: 0.2;
-  filter: blur(48px);
+    radial-gradient(circle at 68% 38%, var(--rv3), transparent 52%),
+    radial-gradient(circle at 28% 62%, var(--rv2), transparent 58%),
+    radial-gradient(circle at 48% 18%, var(--rv1), transparent 48%);
+  opacity: 0.28;
+  filter: blur(56px) saturate(1.15);
   z-index: 0;
 }
 
@@ -2541,9 +2900,32 @@ body[data-page="review"] .field {
   letter-spacing: 0.08em;
 }
 
-.review-count {
+.review-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.review-count,
+.review-status {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.4);
+}
+
+.review-status[data-state="saving"] {
+  color: rgba(255, 220, 160, 0.72);
+}
+
+.review-status[data-state="error"] {
+  color: rgba(255, 140, 140, 0.85);
+}
+
+.review-status[data-state="saved"] {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.review-editor {
+  margin: 0;
 }
 
 .review-track-list {
@@ -2617,6 +2999,28 @@ body[data-page="review"] .field {
   font-size: clamp(15px, 1.1vw, 18px);
   line-height: 1.55;
   white-space: pre-wrap;
+}
+
+.review-text-input {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.35s var(--ease), background 0.35s var(--ease);
+}
+
+.review-text-input::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.review-text-input:focus {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(0, 0, 0, 0.28);
 }
 
 .review-footer {
