@@ -36,6 +36,7 @@ import {
   SINGLE_AWARDS,
   SPECIAL_AWARDS,
 } from "./data/awards.js?v=76";
+import { AWARD_EXTRA_COVERS } from "./data/award-covers.js?v=110";
 import { bindDiscGallery } from "./disc-gallery-three.js?v=72";
 
 const app = document.querySelector("#app");
@@ -803,41 +804,73 @@ function reviewIndexView() {
   `;
 }
 
+function coverStem(url) {
+  const src = coverUrl(url, 400);
+  if (!src) return "";
+  return src.replace(/\/\d+x\d+bb(\.[a-z]+)$/i, "");
+}
+
 function awardYearFavCovers(year = AWARD_EDITION.year) {
   const months = YEAR_MAP[year]?.months || [];
   const seen = new Set();
   const list = [];
+  const push = (title, artist, cover, month = "") => {
+    const src = coverUrl(cover, 400);
+    const stem = coverStem(cover);
+    if (!src || !stem || seen.has(stem)) return;
+    seen.add(stem);
+    list.push({ src, title: title || "", artist: artist || "", month });
+  };
+
   for (const m of months) {
     for (const t of m.tracks || []) {
-      const src = coverUrl(t.cover, 400);
-      if (!src || seen.has(src)) continue;
-      seen.add(src);
-      list.push({
-        src,
-        title: t.title || "",
-        artist: t.artist || "",
-        month: m.labelZh || m.labelEn || "",
-      });
+      push(t.title, t.artist, t.cover, m.labelZh || m.labelEn || "");
     }
+  }
+  for (const t of AWARD_EXTRA_COVERS) {
+    push(t.title, t.artist, t.cover, "extra");
   }
   return list;
 }
 
+/** Avoid back-to-back identical covers, including marquee loop joints. */
+function withoutAdjacentDupes(covers) {
+  if (covers.length < 2) return covers.slice();
+  const out = [];
+  for (const item of covers) {
+    if (out.length && out[out.length - 1].src === item.src) continue;
+    out.push(item);
+  }
+  if (out.length > 2 && out[0].src === out[out.length - 1].src) {
+    const last = out.pop();
+    const mid = Math.max(1, Math.floor(out.length / 2));
+    if (out[mid - 1]?.src !== last.src && out[mid]?.src !== last.src) {
+      out.splice(mid, 0, last);
+    }
+  }
+  return out;
+}
+
 function splitCoverRows(covers, rowCount = 4) {
   if (!covers.length) return Array.from({ length: rowCount }, () => []);
+  // Shuffle-ish spread: rotate source so rows diverge visually.
+  const pool = covers.slice();
   const rows = Array.from({ length: rowCount }, () => []);
-  covers.forEach((c, i) => rows[i % rowCount].push(c));
-  // Keep each row dense enough for a seamless marquee.
-  const minPerRow = 8;
+  pool.forEach((c, i) => rows[i % rowCount].push(c));
+  const minPerRow = 10;
   return rows.map((row, i) => {
-    if (!row.length) return covers.slice();
-    let out = row.slice();
-    let cursor = i;
-    while (out.length < minPerRow) {
-      out.push(covers[cursor % covers.length]);
+    let out = withoutAdjacentDupes(row);
+    if (!out.length) out = pool.slice();
+    let cursor = i * 3;
+    let guard = 0;
+    while (out.length < minPerRow && guard < pool.length * 3) {
+      const next = pool[cursor % pool.length];
       cursor += 1;
+      guard += 1;
+      if (out[out.length - 1]?.src === next.src) continue;
+      out.push(next);
     }
-    return out;
+    return withoutAdjacentDupes(out);
   });
 }
 
