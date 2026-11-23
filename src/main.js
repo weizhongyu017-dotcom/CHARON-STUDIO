@@ -268,11 +268,13 @@ function parseRoute() {
 function header(page) {
   const archiveOn = page === "archive" || String(page).startsWith("archive");
   const reportOn = page === "report" || page === "star";
+  const awardOn = page === "award" || page === "award-home";
   return `
     <header class="site-header">
       <a class="wordmark" href="#/studio" aria-label="CHARON STUDIO 原主页">CHARON <i></i> <span>studio</span></a>
       <nav class="nav-cols" aria-label="Primary">
         <ul class="nav-list">
+          <li><a href="#/" class="${awardOn ? "is-active" : ""}">Sonic Luminous Award</a></li>
           <li><a href="#/monthly-news" class="${page === "news" ? "is-active" : ""}">Monthly News</a></li>
           <li><a href="#/album-review" class="${page === "review" ? "is-active" : ""}">New Album Review</a></li>
           <li><a href="#/monthly-report" class="${reportOn ? "is-active" : ""}">Monthly Report</a></li>
