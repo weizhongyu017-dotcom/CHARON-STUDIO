@@ -1115,7 +1115,17 @@ function waitMs(ms, token) {
 function animateEl(el, keyframes, options) {
   return new Promise((resolve) => {
     const anim = el.animate(keyframes, options);
-    anim.finished.then(() => resolve(true)).catch(() => resolve(false));
+    anim.finished
+      .then(() => {
+        try {
+          anim.commitStyles();
+        } catch (_) {
+          /* ignore */
+        }
+        anim.cancel();
+        resolve(true);
+      })
+      .catch(() => resolve(false));
   });
 }
 
@@ -1176,13 +1186,13 @@ async function playBmcIntro() {
   const startY = h * -0.4;
   const n = finals.length;
   // One continuous flight: TR → BL arc → final seat (no stack / park).
-  const flightMs = 2100;
-  const stagger = 95;
-  const ease = "cubic-bezier(0.22, 0.72, 0.12, 1)";
+  const flightMs = 3400;
+  const stagger = 130;
+  const ease = "cubic-bezier(0.18, 0.78, 0.12, 1)";
 
   rail.classList.add("is-intro");
 
-  // Title rides with the unfold — whole block fades together, 2× slower.
+  // Title rides with the unfold — whole block fades together, slower.
   let titleJob = Promise.resolve(true);
   if (center) {
     center.classList.remove("is-intro-hidden");
@@ -1191,23 +1201,23 @@ async function playBmcIntro() {
     titleJob = animateEl(
       center,
       [
-        { opacity: 0, transform: "translate(-50%, calc(-50% + 18px))" },
+        { opacity: 0, transform: "translate(-50%, calc(-50% + 14px))" },
         {
           opacity: 0,
-          transform: "translate(-50%, calc(-50% + 18px))",
-          offset: 0.28,
+          transform: "translate(-50%, calc(-50% + 14px))",
+          offset: 0.32,
         },
         {
-          opacity: 0.35,
-          transform: "translate(-50%, calc(-50% + 8px))",
-          offset: 0.55,
+          opacity: 0.28,
+          transform: "translate(-50%, calc(-50% + 6px))",
+          offset: 0.58,
         },
         { opacity: 1, transform: "translate(-50%, -50%)" },
       ],
       {
-        duration: 3000,
-        delay: 520,
-        easing: "cubic-bezier(0.2, 0.65, 0.18, 1)",
+        duration: 4800,
+        delay: 720,
+        easing: "cubic-bezier(0.18, 0.6, 0.16, 1)",
         fill: "forwards",
       }
     );
@@ -1234,8 +1244,8 @@ async function playBmcIntro() {
     const aY = h * 0.12 - i * 4;
     const bX = w * 0.28 + (x - w * 0.5) * 0.22;
     const bY = h * 0.72 + (y - h * 0.5) * 0.1;
-    const cX = x * 0.55 + bX * 0.45;
-    const cY = y * 0.55 + bY * 0.45;
+    const cX = x * 0.62 + bX * 0.38;
+    const cY = y * 0.62 + bY * 0.38;
 
     window.setTimeout(() => {
       if (token !== bmcIntroToken) return;
@@ -1244,22 +1254,31 @@ async function playBmcIntro() {
       el.style.setProperty("--bmc-persp", persp);
       const cap = el.querySelector(".bmc-card-artist");
       if (!cap) return;
-      cap.animate([{ opacity: 0 }, { opacity: 0.92 }], {
-        duration: 700,
+      const capAnim = cap.animate([{ opacity: 0 }, { opacity: 0.92 }], {
+        duration: 1100,
         easing: "cubic-bezier(0.22, 0.7, 0.18, 1)",
         fill: "forwards",
-      }).finished.finally(() => {
-        if (token === bmcIntroToken) cap.style.opacity = "";
       });
-    }, stagger * i + flightMs * 0.48);
+      capAnim.finished
+        .then(() => {
+          try {
+            capAnim.commitStyles();
+          } catch (_) {
+            /* ignore */
+          }
+          capAnim.cancel();
+          if (token === bmcIntroToken) cap.style.opacity = "";
+        })
+        .catch(() => {});
+    }, stagger * i + flightMs * 0.52);
 
     return animateEl(
       el,
       [
         { left: `${sx}px`, top: `${sy}px`, opacity: 0, offset: 0 },
-        { left: `${aX}px`, top: `${aY}px`, opacity: 1, offset: 0.22 },
-        { left: `${bX}px`, top: `${bY}px`, opacity: 1, offset: 0.48 },
-        { left: `${cX}px`, top: `${cY}px`, opacity: 1, offset: 0.72 },
+        { left: `${aX}px`, top: `${aY}px`, opacity: 1, offset: 0.2 },
+        { left: `${bX}px`, top: `${bY}px`, opacity: 1, offset: 0.46 },
+        { left: `${cX}px`, top: `${cY}px`, opacity: 1, offset: 0.74 },
         { left: `${x}px`, top: `${y}px`, opacity: 1, offset: 1 },
       ],
       {
@@ -1274,25 +1293,37 @@ async function playBmcIntro() {
   await Promise.all([...flightJobs, titleJob]);
   if (token !== bmcIntroToken) return;
 
-  finals.forEach(({ el, leftStyle, topStyle, yaw, zoom, persp }) => {
-    el.getAnimations().forEach((a) => a.cancel());
-    el.style.left = leftStyle;
-    el.style.top = topStyle;
+  // Keep committed px seats — avoid snapping calc() which caused the end hitch.
+  // Softly restore percentage seats + float after a quiet frame.
+  finals.forEach(({ el, x, y, yaw, zoom, persp }) => {
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
     el.style.opacity = "1";
     el.style.zIndex = "";
     el.style.setProperty("--bmc-yaw", yaw);
     el.style.setProperty("--bmc-zoom", zoom);
     el.style.setProperty("--bmc-persp", persp);
-    el.classList.remove("is-intro");
     el.querySelector(".bmc-card-artist")?.style.removeProperty("opacity");
   });
 
   if (center) {
-    center.getAnimations().forEach((a) => a.cancel());
+    center.style.opacity = "1";
+    center.style.transform = "translate(-50%, -50%)";
+    center.style.visibility = "visible";
+    center.classList.remove("is-intro-hidden");
+  }
+
+  if (!(await waitMs(180, token))) return;
+
+  finals.forEach(({ el, leftStyle, topStyle }) => {
+    el.style.left = leftStyle;
+    el.style.top = topStyle;
+    el.classList.remove("is-intro");
+  });
+  if (center) {
     center.style.opacity = "";
     center.style.transform = "";
     center.style.visibility = "";
-    center.classList.remove("is-intro-hidden");
   }
 
   rail.classList.remove("is-intro");
