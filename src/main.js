@@ -989,7 +989,10 @@ function awardNomineeView(id) {
         <div class="bmc-rail">
           ${leftCards}
           <button type="button" class="bmc-center" data-bmc-toggle aria-expanded="false" aria-controls="bmc-list">
-            <span class="bmc-center-en">${escapeHtml(pack.en)}</span>
+            <span class="bmc-center-en">
+              <span class="bmc-center-en-top">Best</span>
+              <span class="bmc-center-en-rest">Music Cover</span>
+            </span>
             <span class="bmc-center-zh">${escapeHtml(pack.zh)}</span>
             <span class="bmc-center-status">${escapeHtml(pack.status)}</span>
             <span class="bmc-center-hint">点击展开提名名单</span>
@@ -1018,19 +1021,21 @@ function fitBmcRail() {
   const right = [...rail.querySelectorAll('.bmc-card[data-side="right"]')];
   const mid = rail.querySelector(".bmc-center");
   const n = Math.max(left.length, right.length, 1);
-  // True viewport center — leave room for outer cards that scale up.
-  const edge = 36;
+  // Stretch both wings toward the viewport edges; keep a wider center gap.
+  const edge = 28;
   const avail = Math.max(360, window.innerWidth - edge * 2);
   const half = avail / 2;
-  const titleW = Math.min(200, Math.max(152, avail * 0.12));
-  const titleHalf = titleW / 2 + 32;
-  let card = Math.min(156, Math.max(120, avail * 0.084));
-  let step = card * 0.8;
-  // depth 5 → zoom ~1.62; keep outer tall edge inside the viewport.
+  const titleW = Math.min(320, Math.max(220, avail * 0.18));
+  const titleHalf = titleW / 2 + 64;
+  let card = Math.min(150, Math.max(116, avail * 0.078));
   const outerPad = 1.72;
+  // Fill the remaining half so the groups sit farther out, less crowded.
+  const span = Math.max(card * 2, half - 10 - titleHalf - (card * outerPad) / 2);
+  let step = span / Math.max(n - 0.5, 1);
+  step = Math.max(card * 0.7, Math.min(card * 1.05, step));
   const reach = () => titleHalf + (n - 0.5) * step + (card * outerPad) / 2;
-  if (reach() > half - 8) {
-    const shrink = (half - 8) / reach();
+  if (reach() > half - 6) {
+    const shrink = (half - 6) / reach();
     step *= shrink;
     card *= shrink;
   }
