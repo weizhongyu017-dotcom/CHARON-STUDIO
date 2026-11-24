@@ -1018,25 +1018,42 @@ function fitBmcRail() {
   const right = [...rail.querySelectorAll('.bmc-card[data-side="right"]')];
   const mid = rail.querySelector(".bmc-center");
   const n = Math.max(left.length, right.length, 1);
-  // True viewport center — ignore right-nav chrome; keep equal L/R margins.
-  const edge = 28;
+  // True viewport center — leave room for outer cards that scale up.
+  const edge = 36;
   const avail = Math.max(360, window.innerWidth - edge * 2);
   const half = avail / 2;
   const titleW = Math.min(200, Math.max(152, avail * 0.12));
-  // Extra pad so the title never collides with the nearest covers.
-  const titleHalf = titleW / 2 + 28;
-  // Prefer large equal cards; shrink step+card together if outer edges would clip.
-  let card = Math.min(188, Math.max(144, avail * 0.1));
-  let step = card * 0.86;
-  const reach = () => titleHalf + (n - 0.5) * step + card / 2;
-  if (reach() > half - 4) {
-    const shrink = (half - 4) / reach();
+  const titleHalf = titleW / 2 + 32;
+  let card = Math.min(156, Math.max(120, avail * 0.084));
+  let step = card * 0.8;
+  // depth 5 → zoom ~1.62; keep outer tall edge inside the viewport.
+  const outerPad = 1.72;
+  const reach = () => titleHalf + (n - 0.5) * step + (card * outerPad) / 2;
+  if (reach() > half - 8) {
+    const shrink = (half - 8) / reach();
     step *= shrink;
     card *= shrink;
   }
 
+  // Depth → red-trapezoid: outer edge taller/nearer, cover grows outward.
+  const yawByDepth = [0, 16, 26, 36, 44, 50];
+  const zoomByDepth = [1, 1.08, 1.2, 1.34, 1.48, 1.62];
+  const perspByDepth = [0, 620, 540, 460, 400, 360];
+
+  const applyPose = (el, fromCenter, side) => {
+    const d = fromCenter;
+    const yaw = yawByDepth[d] ?? 50;
+    const zoom = zoomByDepth[d] ?? 1.62;
+    const persp = perspByDepth[d] ?? 360;
+    el.style.setProperty("--bmc-depth", String(d));
+    // Left +yaw → outer (left) edge toward camera / taller; right mirrors.
+    el.style.setProperty("--bmc-yaw", `${side === "left" ? yaw : -yaw}deg`);
+    el.style.setProperty("--bmc-zoom", String(zoom));
+    el.style.setProperty("--bmc-persp", `${persp}px`);
+  };
+
   rail.style.width = `${Math.round(avail)}px`;
-  rail.style.height = `${Math.round(card + 72)}px`;
+  rail.style.height = `${Math.round(card * 1.8 + 96)}px`;
   rail.style.setProperty("--bmc-card", `${Math.round(card)}px`);
   rail.style.setProperty("--bmc-center", `${Math.round(titleW)}px`);
 
@@ -1046,11 +1063,11 @@ function fitBmcRail() {
   }
 
   left.forEach((el, i) => {
-    // DOM: outermost → innermost. Mirror of right side.
     const fromCenter = left.length - i;
     const x = -(titleHalf + (fromCenter - 0.5) * step);
     el.style.left = `calc(50% + ${x.toFixed(1)}px)`;
     el.style.top = "50%";
+    applyPose(el, fromCenter, "left");
   });
 
   right.forEach((el, i) => {
@@ -1058,6 +1075,7 @@ function fitBmcRail() {
     const x = titleHalf + (fromCenter - 0.5) * step;
     el.style.left = `calc(50% + ${x.toFixed(1)}px)`;
     el.style.top = "50%";
+    applyPose(el, fromCenter, "right");
   });
 }
 

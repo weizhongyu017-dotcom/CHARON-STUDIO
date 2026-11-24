@@ -2541,60 +2541,55 @@ body[data-page="award-nominee"] {
 
 .bmc-stage {
   position: relative;
-  min-height: min(78vh, 900px);
+  min-height: min(84vh, 980px);
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1800px;
-  perspective-origin: 50% 50%;
   overflow: visible;
-  padding: 40px 0 48px;
+  padding: 64px 0 72px;
 }
 
 .bmc-rail {
-  --bmc-card: 168px;
+  --bmc-card: 150px;
   --bmc-center: 176px;
   position: relative;
   width: min(100vw - 48px, 1440px);
-  height: calc(var(--bmc-card) + 72px);
+  height: calc(var(--bmc-card) * 1.75 + 96px);
   margin: 0 auto;
-  transform-style: preserve-3d;
 }
 
 .bmc-card {
   --bmc-depth: 1;
   --bmc-rank: 1;
   --bmc-yaw: 0deg;
+  --bmc-zoom: 1;
+  --bmc-persp: 520px;
   position: absolute;
   top: 50%;
   left: 50%;
   width: var(--bmc-card);
   margin: 0;
   transform: translate(-50%, -50%);
-  transform-style: preserve-3d;
-  z-index: calc(20 - var(--bmc-depth));
+  z-index: calc(10 + var(--bmc-depth));
   pointer-events: none;
 }
 
-.bmc-card[data-side="left"] {
-  --bmc-yaw: calc(var(--bmc-depth) * 5deg);
-}
-
-.bmc-card[data-side="right"] {
-  --bmc-yaw: calc(var(--bmc-depth) * -5deg);
-}
-
+/* Local perspective → stable trapezoid (outer edge tall) without flying off-screen. */
 .bmc-card-frame {
   border-radius: 3px;
   overflow: hidden;
   aspect-ratio: 1;
   background: #141820;
   box-shadow:
-    0 28px 60px rgba(0, 0, 0, 0.55),
+    0 40px 80px rgba(0, 0, 0, 0.68),
     0 0 0 1px rgba(255, 255, 255, 0.14);
-  transform: rotateY(var(--bmc-yaw, 0deg)) translateY(0);
-  transform-style: preserve-3d;
+  transform-origin: center center;
+  transform:
+    perspective(var(--bmc-persp))
+    rotateY(var(--bmc-yaw, 0deg))
+    scale(var(--bmc-zoom, 1))
+    translateY(0);
   animation: bmc-float-y 5.4s ease-in-out infinite;
   animation-delay: calc(var(--bmc-rank) * -0.4s);
   will-change: transform;
@@ -2797,10 +2792,18 @@ body[data-page="award-nominee"] {
 @keyframes bmc-float-y {
   0%,
   100% {
-    transform: rotateY(var(--bmc-yaw, 0deg)) translateY(0);
+    transform:
+      perspective(var(--bmc-persp, 520px))
+      rotateY(var(--bmc-yaw, 0deg))
+      scale(var(--bmc-zoom, 1))
+      translateY(0);
   }
   50% {
-    transform: rotateY(var(--bmc-yaw, 0deg)) translateY(-14px);
+    transform:
+      perspective(var(--bmc-persp, 520px))
+      rotateY(var(--bmc-yaw, 0deg))
+      scale(var(--bmc-zoom, 1))
+      translateY(-18px);
   }
 }
 
