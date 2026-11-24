@@ -987,14 +987,14 @@ function awardNomineeView(id) {
       <p class="bmc-kicker">${escapeHtml(AWARD_EDITION.title)} ‣ ${pack.year}</p>
       <section class="bmc-stage" aria-label="${escapeAttr(pack.en)} nominated covers">
         <div class="bmc-rail">
-          <div class="bmc-side is-left" aria-hidden="true">${leftCards}</div>
+          ${leftCards}
           <button type="button" class="bmc-center" data-bmc-toggle aria-expanded="false" aria-controls="bmc-list">
             <span class="bmc-center-en">${escapeHtml(pack.en)}</span>
             <span class="bmc-center-zh">${escapeHtml(pack.zh)}</span>
             <span class="bmc-center-status">${escapeHtml(pack.status)}</span>
             <span class="bmc-center-hint">点击展开提名名单</span>
           </button>
-          <div class="bmc-side is-right" aria-hidden="true">${rightCards}</div>
+          ${rightCards}
         </div>
       </section>
 
@@ -1014,31 +1014,51 @@ function fitBmcRail() {
   const rail = document.querySelector(".bmc-rail");
   if (!rail) return;
 
-  // Prefer large covers; then symmetrically scale to fit the viewport.
-  const leftN = document.querySelectorAll(".bmc-side.is-left .bmc-card").length || 5;
-  const rightN = document.querySelectorAll(".bmc-side.is-right .bmc-card").length || 5;
-  const total = leftN + rightN;
-  const gaps = Math.max(0, leftN - 1) + Math.max(0, rightN - 1);
-  const margin = 28;
-  const avail = Math.max(420, window.innerWidth - margin * 2);
-  const center = Math.min(200, Math.max(156, avail * 0.12));
-  const gap = Math.max(14, Math.min(24, avail * 0.012));
-  const grow = 14 * 2;
-  // Big first — visual hero covers.
-  let card = Math.min(236, Math.max(168, (avail - center - gaps * gap - grow) / total + 28));
-  card = Math.max(156, Math.min(236, card));
+  const left = [...rail.querySelectorAll('.bmc-card[data-side="left"]')];
+  const right = [...rail.querySelectorAll('.bmc-card[data-side="right"]')];
+  const mid = rail.querySelector(".bmc-center");
+  const n = Math.max(left.length, right.length, 1);
+  // True viewport center — ignore right-nav chrome; keep equal L/R margins.
+  const edge = 28;
+  const avail = Math.max(360, window.innerWidth - edge * 2);
+  const half = avail / 2;
+  const titleW = Math.min(200, Math.max(152, avail * 0.12));
+  // Extra pad so the title never collides with the nearest covers.
+  const titleHalf = titleW / 2 + 28;
+  // Prefer large equal cards; shrink step+card together if outer edges would clip.
+  let card = Math.min(188, Math.max(144, avail * 0.1));
+  let step = card * 0.86;
+  const reach = () => titleHalf + (n - 0.5) * step + card / 2;
+  if (reach() > half - 4) {
+    const shrink = (half - 4) / reach();
+    step *= shrink;
+    card *= shrink;
+  }
 
+  rail.style.width = `${Math.round(avail)}px`;
+  rail.style.height = `${Math.round(card + 72)}px`;
   rail.style.setProperty("--bmc-card", `${Math.round(card)}px`);
-  rail.style.setProperty("--bmc-gap", `${Math.round(gap)}px`);
-  rail.style.setProperty("--bmc-center", `${Math.round(center)}px`);
-  rail.style.setProperty("--bmc-scale", "1");
+  rail.style.setProperty("--bmc-center", `${Math.round(titleW)}px`);
 
-  const applyScale = () => {
-    const used = rail.scrollWidth || 1;
-    const scale = Math.min(1, (avail - 4) / used);
-    rail.style.setProperty("--bmc-scale", String(Math.max(0.74, scale)));
-  };
-  requestAnimationFrame(() => requestAnimationFrame(applyScale));
+  if (mid) {
+    mid.style.left = "50%";
+    mid.style.top = "50%";
+  }
+
+  left.forEach((el, i) => {
+    // DOM: outermost → innermost. Mirror of right side.
+    const fromCenter = left.length - i;
+    const x = -(titleHalf + (fromCenter - 0.5) * step);
+    el.style.left = `calc(50% + ${x.toFixed(1)}px)`;
+    el.style.top = "50%";
+  });
+
+  right.forEach((el, i) => {
+    const fromCenter = i + 1;
+    const x = titleHalf + (fromCenter - 0.5) * step;
+    el.style.left = `calc(50% + ${x.toFixed(1)}px)`;
+    el.style.top = "50%";
+  });
 }
 
 function bindAwardNomineeToggle() {

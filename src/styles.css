@@ -2541,89 +2541,63 @@ body[data-page="award-nominee"] {
 
 .bmc-stage {
   position: relative;
-  min-height: min(86vh, 980px);
+  min-height: min(78vh, 900px);
   width: 100%;
-  display: grid;
-  place-items: center;
-  perspective: 2800px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1800px;
   perspective-origin: 50% 50%;
   overflow: visible;
+  padding: 40px 0 48px;
 }
 
 .bmc-rail {
-  --bmc-card: 210px;
-  --bmc-gap: 18px;
-  --bmc-center: 180px;
-  --bmc-scale: 1;
+  --bmc-card: 168px;
+  --bmc-center: 176px;
   position: relative;
-  left: 0;
-  width: max-content;
-  display: grid;
-  grid-template-columns: max-content var(--bmc-center) max-content;
-  align-items: center;
-  justify-self: center;
-  gap: 14px;
-  transform: scale(var(--bmc-scale));
+  width: min(100vw - 48px, 1440px);
+  height: calc(var(--bmc-card) + 72px);
+  margin: 0 auto;
   transform-style: preserve-3d;
-  transform-origin: center center;
-}
-
-.bmc-side {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--bmc-gap);
-  transform-style: preserve-3d;
-  width: max-content;
-  padding: 52px 0 20px;
-  overflow: visible;
-}
-
-.bmc-side.is-left {
-  justify-content: flex-end;
-}
-
-.bmc-side.is-right {
-  justify-content: flex-start;
 }
 
 .bmc-card {
   --bmc-depth: 1;
   --bmc-rank: 1;
-  flex: 0 0 auto;
-  width: calc(var(--bmc-card) + (var(--bmc-depth) - 1) * 14px);
+  --bmc-yaw: 0deg;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--bmc-card);
   margin: 0;
+  transform: translate(-50%, -50%);
   transform-style: preserve-3d;
   z-index: calc(20 - var(--bmc-depth));
-  animation: bmc-float-y 5.2s ease-in-out infinite;
-  animation-delay: calc(var(--bmc-rank) * -0.42s);
-  will-change: transform;
+  pointer-events: none;
 }
 
-.bmc-side.is-left .bmc-card {
-  --bmc-yaw: calc(10deg + var(--bmc-depth) * 4.2deg);
-  --bmc-zoom: calc(0.86 + var(--bmc-depth) * 0.055);
-  --bmc-z: calc(var(--bmc-depth) * 22px - 18px);
+.bmc-card[data-side="left"] {
+  --bmc-yaw: calc(var(--bmc-depth) * 5deg);
 }
 
-.bmc-side.is-right .bmc-card {
-  --bmc-yaw: calc(-10deg - var(--bmc-depth) * 4.2deg);
-  --bmc-zoom: calc(0.86 + var(--bmc-depth) * 0.055);
-  --bmc-z: calc(var(--bmc-depth) * 22px - 18px);
+.bmc-card[data-side="right"] {
+  --bmc-yaw: calc(var(--bmc-depth) * -5deg);
 }
 
 .bmc-card-frame {
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
   aspect-ratio: 1;
   background: #141820;
   box-shadow:
-    0 32px 70px rgba(0, 0, 0, 0.58),
+    0 28px 60px rgba(0, 0, 0, 0.55),
     0 0 0 1px rgba(255, 255, 255, 0.14);
-  transform:
-    translateZ(var(--bmc-z, 0px))
-    rotateY(var(--bmc-yaw, 0deg))
-    scale(var(--bmc-zoom, 1));
+  transform: rotateY(var(--bmc-yaw, 0deg)) translateY(0);
   transform-style: preserve-3d;
+  animation: bmc-float-y 5.4s ease-in-out infinite;
+  animation-delay: calc(var(--bmc-rank) * -0.4s);
+  will-change: transform;
 }
 
 .bmc-card-frame img {
@@ -2654,18 +2628,23 @@ body[data-page="award-nominee"] {
   color: inherit;
   cursor: pointer;
   text-align: center;
-  padding: 16px 6px;
+  padding: 16px 4px;
   display: grid;
   gap: 10px;
   justify-items: center;
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   z-index: 30;
-  transition: transform 0.45s var(--ease), opacity 0.45s var(--ease);
+  width: var(--bmc-center);
+  max-width: var(--bmc-center);
+  transform: translate(-50%, -50%);
+  transition: opacity 0.45s var(--ease);
 }
 
 .bmc-center:hover,
 .bmc-center:focus-visible {
-  transform: translateY(-4px);
+  opacity: 0.88;
 }
 
 .bmc-center-index {
@@ -2818,40 +2797,27 @@ body[data-page="award-nominee"] {
 @keyframes bmc-float-y {
   0%,
   100% {
-    transform: translateY(0);
+    transform: rotateY(var(--bmc-yaw, 0deg)) translateY(0);
   }
   50% {
-    transform: translateY(-22px);
+    transform: rotateY(var(--bmc-yaw, 0deg)) translateY(-14px);
   }
 }
 
 @media (max-width: 900px) {
-  .bmc-rail {
-    grid-template-columns: 1fr;
-    gap: 28px;
-    transform: none;
-  }
-
-  .bmc-side {
-    justify-content: center !important;
+  .bmc-stage {
     overflow-x: auto;
-    padding-bottom: 6px;
-    gap: 12px;
-  }
-
-  .bmc-side.is-left .bmc-card,
-  .bmc-side.is-right .bmc-card {
-    width: clamp(120px, 30vw, 156px);
-    animation: bmc-float-y 5.2s ease-in-out infinite;
+    padding-inline: 12px;
   }
 
   .bmc-card-frame {
+    animation: none;
     transform: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bmc-card {
+  .bmc-card-frame {
     animation: none !important;
   }
 }
