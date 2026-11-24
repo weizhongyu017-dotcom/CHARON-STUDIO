@@ -937,10 +937,12 @@ function awardLandingView() {
 function awardNomineeCard(item, side, depth, rank) {
   return `
     <figure class="bmc-card" style="--bmc-depth:${depth}; --bmc-rank:${rank}" data-side="${side}">
-      <div class="bmc-card-frame">
-        <img src="${escapeAttr(item.cover)}" alt="${escapeAttr(`${item.artist} — ${item.work}`)}" loading="lazy" />
+      <div class="bmc-card-pose">
+        <div class="bmc-card-frame">
+          <img src="${escapeAttr(item.cover)}" alt="${escapeAttr(`${item.artist} — ${item.work}`)}" loading="lazy" />
+        </div>
+        <figcaption class="bmc-card-artist">${escapeHtml(item.artist)}</figcaption>
       </div>
-      <figcaption class="bmc-card-artist">${escapeHtml(item.artist)}</figcaption>
     </figure>
   `;
 }
@@ -1021,35 +1023,34 @@ function fitBmcRail() {
   const right = [...rail.querySelectorAll('.bmc-card[data-side="right"]')];
   const mid = rail.querySelector(".bmc-center");
   const n = Math.max(left.length, right.length, 1);
-  // Stretch both wings toward the viewport edges; keep a wider center gap.
-  const edge = 28;
+  // Compact center gap; outer covers stay visibly larger.
+  const edge = 24;
   const avail = Math.max(360, window.innerWidth - edge * 2);
   const half = avail / 2;
-  const titleW = Math.min(320, Math.max(220, avail * 0.18));
-  const titleHalf = titleW / 2 + 64;
-  let card = Math.min(150, Math.max(116, avail * 0.078));
-  const outerPad = 1.72;
-  // Fill the remaining half so the groups sit farther out, less crowded.
-  const span = Math.max(card * 2, half - 10 - titleHalf - (card * outerPad) / 2);
+  const titleW = Math.min(300, Math.max(210, avail * 0.16));
+  const titleHalf = titleW / 2 + 22;
+  let card = Math.min(148, Math.max(118, avail * 0.08));
+  const outerPad = 2.05;
+  const span = Math.max(card * 2.2, half - 8 - titleHalf - (card * outerPad) / 2);
   let step = span / Math.max(n - 0.5, 1);
-  step = Math.max(card * 0.7, Math.min(card * 1.05, step));
+  step = Math.max(card * 0.68, Math.min(card * 0.98, step));
   const reach = () => titleHalf + (n - 0.5) * step + (card * outerPad) / 2;
-  if (reach() > half - 6) {
-    const shrink = (half - 6) / reach();
+  if (reach() > half - 4) {
+    const shrink = (half - 4) / reach();
     step *= shrink;
     card *= shrink;
   }
 
-  // Depth → red-trapezoid: outer edge taller/nearer, cover grows outward.
-  const yawByDepth = [0, 16, 26, 36, 44, 50];
-  const zoomByDepth = [1, 1.08, 1.2, 1.34, 1.48, 1.62];
-  const perspByDepth = [0, 620, 540, 460, 400, 360];
+  // Outer = bigger face; yaw strong but not so hard it foreshortens into a sliver.
+  const yawByDepth = [0, 14, 24, 34, 42, 48];
+  const zoomByDepth = [1, 1.12, 1.28, 1.48, 1.72, 2.0];
+  const perspByDepth = [0, 580, 500, 420, 360, 320];
 
   const applyPose = (el, fromCenter, side) => {
     const d = fromCenter;
-    const yaw = yawByDepth[d] ?? 50;
-    const zoom = zoomByDepth[d] ?? 1.62;
-    const persp = perspByDepth[d] ?? 360;
+    const yaw = yawByDepth[d] ?? 48;
+    const zoom = zoomByDepth[d] ?? 2.0;
+    const persp = perspByDepth[d] ?? 320;
     el.style.setProperty("--bmc-depth", String(d));
     // Left +yaw → outer (left) edge toward camera / taller; right mirrors.
     el.style.setProperty("--bmc-yaw", `${side === "left" ? yaw : -yaw}deg`);
@@ -1058,7 +1059,7 @@ function fitBmcRail() {
   };
 
   rail.style.width = `${Math.round(avail)}px`;
-  rail.style.height = `${Math.round(card * 1.8 + 96)}px`;
+  rail.style.height = `${Math.round(card * 2.2 + 110)}px`;
   rail.style.setProperty("--bmc-card", `${Math.round(card)}px`);
   rail.style.setProperty("--bmc-center", `${Math.round(titleW)}px`);
 
