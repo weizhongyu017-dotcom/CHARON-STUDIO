@@ -1187,45 +1187,17 @@ async function playBmcIntro() {
 
   rail.classList.add("is-intro");
 
-  let titleJob = Promise.resolve(true);
+  // Title stays hidden until covers finish, then fades in last.
   if (center) {
-    center.classList.remove("is-intro-hidden");
-    center.style.visibility = "visible";
+    center.classList.add("is-intro-hidden");
     center.style.opacity = "0";
-    titleJob = animateEl(
-      center,
-      [
-        {
-          opacity: 0,
-          transform: `${base} translate3d(0, 12px, 0)`,
-          offset: 0,
-        },
-        {
-          opacity: 0,
-          transform: `${base} translate3d(0, 12px, 0)`,
-          offset: 0.34,
-        },
-        {
-          opacity: 0.32,
-          transform: `${base} translate3d(0, 5px, 0)`,
-          offset: 0.6,
-        },
-        { opacity: 1, transform: `${base} translate3d(0, 0, 0)`, offset: 1 },
-      ],
-      {
-        duration: 5200,
-        delay: 900,
-        easing: "cubic-bezier(0.18, 0.58, 0.16, 1)",
-        fill: "forwards",
-      }
-    );
+    center.style.visibility = "hidden";
   }
 
   finals.forEach(({ el }, i) => {
     el.classList.add("is-intro");
     el.style.opacity = "0";
     el.style.zIndex = String(40 + i);
-    // Final perspective from the start — no mid-flight yaw/zoom pops.
   });
 
   const flightJobs = finals.map(({ el, x, y }, i) => {
@@ -1276,23 +1248,15 @@ async function playBmcIntro() {
     );
   });
 
-  await Promise.all([...flightJobs, titleJob]);
+  await Promise.all(flightJobs);
   if (token !== bmcIntroToken) return;
 
-  // Drop inline transform/opacity so CSS takes over with zero visual delta.
   finals.forEach(({ el }) => {
     el.style.opacity = "1";
     el.style.transform = base;
     el.style.zIndex = "";
   });
-  if (center) {
-    center.style.opacity = "1";
-    center.style.transform = base;
-    center.style.visibility = "visible";
-    center.classList.remove("is-intro-hidden");
-  }
 
-  // One quiet frame, then clear inlines + re-enable float.
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   if (token !== bmcIntroToken) return;
 
@@ -1301,13 +1265,45 @@ async function playBmcIntro() {
     el.style.transform = "";
     el.classList.remove("is-intro");
   });
-  if (center) {
+  rail.classList.remove("is-intro");
+
+  // Best Music Cover fades in after the rail has settled.
+  if (center && token === bmcIntroToken) {
+    center.classList.remove("is-intro-hidden");
+    center.style.visibility = "visible";
+    center.style.opacity = "0";
+    if (!(await waitMs(160, token))) return;
+    await animateEl(
+      center,
+      [
+        {
+          opacity: 0,
+          transform: `${base} translate3d(0, 14px, 0)`,
+          offset: 0,
+        },
+        {
+          opacity: 0.25,
+          transform: `${base} translate3d(0, 7px, 0)`,
+          offset: 0.45,
+        },
+        {
+          opacity: 1,
+          transform: `${base} translate3d(0, 0, 0)`,
+          offset: 1,
+        },
+      ],
+      {
+        duration: 2400,
+        easing: "cubic-bezier(0.18, 0.58, 0.16, 1)",
+        fill: "forwards",
+      }
+    );
+    if (token !== bmcIntroToken) return;
     center.style.opacity = "";
     center.style.transform = "";
     center.style.visibility = "";
   }
 
-  rail.classList.remove("is-intro");
   page?.classList.remove("is-introing");
   delete document.body.dataset.bmcIntro;
 }
