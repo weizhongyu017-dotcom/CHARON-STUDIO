@@ -988,9 +988,9 @@ function awardNomineeView(id) {
     <main class="bmc-page">
       <p class="bmc-kicker">${escapeHtml(AWARD_EDITION.title)} ‣ ${pack.year}</p>
       <section class="bmc-stage" aria-label="${escapeAttr(pack.en)} nominated covers">
-        <div class="bmc-rail">
+        <div class="bmc-rail is-intro">
           ${leftCards}
-          <button type="button" class="bmc-center" data-bmc-toggle aria-expanded="false" aria-controls="bmc-list">
+          <button type="button" class="bmc-center is-intro-hidden" data-bmc-toggle aria-expanded="false" aria-controls="bmc-list">
             <span class="bmc-center-en">
               <span class="bmc-center-en-top">Best</span>
               <span class="bmc-center-en-rest">Music Cover</span>
@@ -1102,6 +1102,281 @@ function bindAwardNomineeToggle() {
       btn.classList.remove("is-open");
     }
   });
+}
+
+let bmcIntroToken = 0;
+
+function waitMs(ms, token) {
+  return new Promise((resolve) => {
+    window.setTimeout(() => resolve(token === bmcIntroToken), ms);
+  });
+}
+
+function animateEl(el, keyframes, options) {
+  return new Promise((resolve) => {
+    const anim = el.animate(keyframes, options);
+    anim.finished.then(() => resolve(true)).catch(() => resolve(false));
+  });
+}
+
+async function playBmcIntro() {
+  const rail = document.querySelector(".bmc-rail");
+  const center = document.querySelector(".bmc-center");
+  const page = document.querySelector(".bmc-page");
+  const cards = [...document.querySelectorAll(".bmc-card")];
+  if (!rail || !cards.length) return;
+
+  const token = ++bmcIntroToken;
+  document.body.dataset.bmcIntro = "1";
+  page?.classList.add("is-introing");
+  fitBmcRail();
+
+  const finishIntro = () => {
+    rail.classList.remove("is-intro");
+    cards.forEach((el) => {
+      el.classList.remove("is-intro");
+      el.style.opacity = "";
+      el.style.zIndex = "";
+      el.querySelector(".bmc-card-artist")?.style.removeProperty("opacity");
+    });
+    if (center) {
+      center.classList.remove("is-intro-hidden");
+      center.style.opacity = "";
+      center.style.transform = "";
+      center.style.visibility = "";
+      center.querySelectorAll(".bmc-center-en-top, .bmc-center-en-rest, .bmc-center-zh, .bmc-center-status, .bmc-center-hint").forEach((n) => {
+        n.style.opacity = "";
+        n.style.transform = "";
+      });
+    }
+    page?.classList.remove("is-introing");
+    delete document.body.dataset.bmcIntro;
+  };
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    finishIntro();
+    return;
+  }
+
+  // Final seats in rail-local px (left/top = card center, with translate(-50%,-50%)).
+  const railBox = rail.getBoundingClientRect();
+  const finals = cards.map((el) => {
+    const box = el.getBoundingClientRect();
+    return {
+      el,
+      leftStyle: el.style.left || "50%",
+      topStyle: el.style.top || "50%",
+      x: box.left + box.width / 2 - railBox.left,
+      y: box.top + box.height / 2 - railBox.top,
+      yaw: el.style.getPropertyValue("--bmc-yaw") || "0deg",
+      zoom: el.style.getPropertyValue("--bmc-zoom") || "1",
+      persp: el.style.getPropertyValue("--bmc-persp") || "520px",
+    };
+  });
+
+  const w = railBox.width;
+  const h = Math.max(railBox.height, 360);
+  // Phase 1 path: top-right → bottom-left, then gather at left-center.
+  const startX = w * 1.18;
+  const startY = h * -0.42;
+  const midX = w * 0.42;
+  const midY = h * 0.38;
+  const endX = w * -0.06;
+  const endY = h * 1.18;
+  const parkX = w * 0.22;
+  const parkY = h * 0.5;
+  const n = finals.length;
+
+  rail.classList.add("is-intro");
+  if (center) {
+    center.classList.add("is-intro-hidden");
+    center.style.opacity = "0";
+    center.style.visibility = "hidden";
+  }
+
+  finals.forEach(({ el }, i) => {
+    el.classList.add("is-intro");
+    el.style.left = `${startX + i * 26}px`;
+    el.style.top = `${startY - i * 14}px`;
+    el.style.opacity = "0";
+    el.style.setProperty("--bmc-yaw", "18deg");
+    el.style.setProperty("--bmc-zoom", "0.88");
+    el.style.setProperty("--bmc-persp", "480px");
+    el.style.zIndex = String(90 - i);
+    const cap = el.querySelector(".bmc-card-artist");
+    if (cap) cap.style.opacity = "0";
+  });
+
+  // Phase 1 — ten covers streak from top-right down to bottom-left.
+  const dashJobs = finals.map(({ el }, i) =>
+    animateEl(
+      el,
+      [
+        {
+          left: `${startX + i * 26}px`,
+          top: `${startY - i * 14}px`,
+          opacity: 0,
+          offset: 0,
+        },
+        {
+          left: `${startX * 0.72 + midX * 0.28 + i * 12}px`,
+          top: `${startY * 0.15 + midY * 0.55 - i * 6}px`,
+          opacity: 1,
+          offset: 0.28,
+        },
+        {
+          left: `${midX * 0.35 + endX * 0.65 + i * 8}px`,
+          top: `${midY * 0.25 + endY * 0.55 - i * 4}px`,
+          opacity: 1,
+          offset: 0.62,
+        },
+        {
+          left: `${endX + i * 6}px`,
+          top: `${endY - i * 5}px`,
+          opacity: 1,
+          offset: 0.82,
+        },
+        {
+          left: `${parkX + (i - (n - 1) / 2) * 4}px`,
+          top: `${parkY}px`,
+          opacity: 1,
+          offset: 1,
+        },
+      ],
+      {
+        duration: 1480,
+        delay: i * 78,
+        easing: "cubic-bezier(0.18, 0.82, 0.12, 1)",
+        fill: "forwards",
+      }
+    )
+  );
+  await Promise.all(dashJobs);
+  if (token !== bmcIntroToken) return;
+
+  finals.forEach(({ el }, i) => {
+    el.getAnimations().forEach((a) => a.cancel());
+    el.style.left = `${parkX + (i - (n - 1) / 2) * 4}px`;
+    el.style.top = `${parkY}px`;
+    el.style.opacity = "1";
+  });
+  if (!(await waitMs(260, token))) return;
+
+  // Phase 2 — unfold one-by-one from left-center toward right-center.
+  const fanJobs = finals.map(({ el, x, y, yaw, zoom, persp }, i) => {
+    const stackX = parkX + (i - (n - 1) / 2) * 4;
+    el.style.zIndex = String(40 + i);
+    window.setTimeout(() => {
+      if (token !== bmcIntroToken) return;
+      el.style.setProperty("--bmc-yaw", yaw);
+      el.style.setProperty("--bmc-zoom", zoom);
+      el.style.setProperty("--bmc-persp", persp);
+      const cap = el.querySelector(".bmc-card-artist");
+      if (cap) {
+        cap.animate(
+          [
+            { opacity: 0, transform: "translateY(8px)" },
+            { opacity: 0.92, transform: "translateY(0)" },
+          ],
+          {
+            duration: 520,
+            easing: "cubic-bezier(0.22, 0.7, 0.18, 1)",
+            fill: "forwards",
+          }
+        ).finished.finally(() => {
+          if (token === bmcIntroToken) cap.style.opacity = "";
+        });
+      }
+    }, i * 110);
+    return animateEl(
+      el,
+      [
+        { left: `${stackX}px`, top: `${parkY}px`, opacity: 1 },
+        {
+          left: `${stackX + (x - stackX) * 0.4}px`,
+          top: `${parkY + (y - parkY) * 0.22}px`,
+          opacity: 1,
+          offset: 0.42,
+        },
+        { left: `${x}px`, top: `${y}px`, opacity: 1 },
+      ],
+      {
+        duration: 920,
+        delay: i * 110,
+        easing: "cubic-bezier(0.12, 0.88, 0.16, 1)",
+        fill: "forwards",
+      }
+    );
+  });
+
+  await Promise.all(fanJobs);
+  if (token !== bmcIntroToken) return;
+
+  finals.forEach(({ el, leftStyle, topStyle, yaw, zoom, persp }) => {
+    el.getAnimations().forEach((a) => a.cancel());
+    el.style.left = leftStyle;
+    el.style.top = topStyle;
+    el.style.opacity = "1";
+    el.style.zIndex = "";
+    el.style.setProperty("--bmc-yaw", yaw);
+    el.style.setProperty("--bmc-zoom", zoom);
+    el.style.setProperty("--bmc-persp", persp);
+    el.classList.remove("is-intro");
+    el.querySelector(".bmc-card-artist")?.style.removeProperty("opacity");
+  });
+
+  if (!(await waitMs(200, token))) return;
+
+  // Phase 3 — Best / Music Cover title fades in last, line by line.
+  if (center && token === bmcIntroToken) {
+    center.classList.remove("is-intro-hidden");
+    center.style.visibility = "visible";
+    center.style.opacity = "1";
+    const lines = [
+      ".bmc-center-en-top",
+      ".bmc-center-en-rest",
+      ".bmc-center-zh",
+      ".bmc-center-status",
+      ".bmc-center-hint",
+    ]
+      .map((sel) => center.querySelector(sel))
+      .filter(Boolean);
+
+    lines.forEach((node) => {
+      node.style.opacity = "0";
+      node.style.transform = "translateY(16px)";
+    });
+
+    for (let i = 0; i < lines.length; i += 1) {
+      if (token !== bmcIntroToken) return;
+      const node = lines[i];
+      await animateEl(
+        node,
+        [
+          { opacity: 0, transform: "translateY(16px)" },
+          { opacity: 1, transform: "translateY(0)" },
+        ],
+        {
+          duration: i < 2 ? 780 : 560,
+          easing: "cubic-bezier(0.22, 0.7, 0.18, 1)",
+          fill: "forwards",
+        }
+      );
+      if (token !== bmcIntroToken) return;
+      node.getAnimations().forEach((a) => a.cancel());
+      node.style.opacity = "";
+      node.style.transform = "";
+      if (i < lines.length - 1 && !(await waitMs(90, token))) return;
+    }
+    center.style.opacity = "";
+    center.style.transform = "";
+    center.style.visibility = "";
+  }
+
+  if (token !== bmcIntroToken) return;
+  rail.classList.remove("is-intro");
+  page?.classList.remove("is-introing");
+  delete document.body.dataset.bmcIntro;
 }
 
 function awardView() {
@@ -2344,10 +2619,14 @@ async function render() {
     }
     app.innerHTML = html;
     bindAwardNomineeToggle();
-    const runFit = () => fitBmcRail();
+    const runFit = () => {
+      if (document.body.dataset.bmcIntro === "1") return;
+      fitBmcRail();
+    };
     requestAnimationFrame(() => {
-      runFit();
-      requestAnimationFrame(runFit);
+      requestAnimationFrame(() => {
+        playBmcIntro();
+      });
     });
     document.querySelectorAll(".bmc-card-frame img").forEach((img) => {
       if (img.complete) return;
@@ -2372,6 +2651,29 @@ window.addEventListener("hashchange", () => {
 });
 window.addEventListener("resize", () => {
   if (document.body.dataset.page === "home") fitMast();
-  if (document.body.dataset.page === "award-nominee") fitBmcRail();
+  if (document.body.dataset.page === "award-nominee") {
+    if (document.body.dataset.bmcIntro === "1") {
+      bmcIntroToken += 1;
+      delete document.body.dataset.bmcIntro;
+      document.querySelector(".bmc-page")?.classList.remove("is-introing");
+      document.querySelector(".bmc-rail")?.classList.remove("is-intro");
+      document.querySelectorAll(".bmc-card").forEach((el) => {
+        el.classList.remove("is-intro");
+        el.getAnimations().forEach((a) => a.cancel());
+        el.style.opacity = "";
+        el.style.left = "";
+        el.style.top = "";
+        el.style.zIndex = "";
+      });
+      const center = document.querySelector(".bmc-center");
+      if (center) {
+        center.classList.remove("is-intro-hidden");
+        center.getAnimations().forEach((a) => a.cancel());
+        center.style.opacity = "";
+        center.style.transform = "";
+      }
+    }
+    fitBmcRail();
+  }
 });
 render();
