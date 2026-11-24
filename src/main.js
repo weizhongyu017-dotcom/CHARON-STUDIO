@@ -1144,10 +1144,6 @@ async function playBmcIntro() {
       center.style.opacity = "";
       center.style.transform = "";
       center.style.visibility = "";
-      center.querySelectorAll(".bmc-center-en-top, .bmc-center-en-rest, .bmc-center-zh, .bmc-center-status, .bmc-center-hint").forEach((n) => {
-        n.style.opacity = "";
-        n.style.transform = "";
-      });
     }
     page?.classList.remove("is-introing");
     delete document.body.dataset.bmcIntro;
@@ -1158,7 +1154,7 @@ async function playBmcIntro() {
     return;
   }
 
-  // Final seats in rail-local px (left/top = card center, with translate(-50%,-50%)).
+  // Final seats in rail-local px (left/top = card center).
   const railBox = rail.getBoundingClientRect();
   const finals = cards.map((el) => {
     const box = el.getBoundingClientRect();
@@ -1176,140 +1172,106 @@ async function playBmcIntro() {
 
   const w = railBox.width;
   const h = Math.max(railBox.height, 360);
-  // Phase 1 path: top-right → bottom-left, then gather at left-center.
-  const startX = w * 1.18;
-  const startY = h * -0.42;
-  const midX = w * 0.42;
-  const midY = h * 0.38;
-  const endX = w * -0.06;
-  const endY = h * 1.18;
-  const parkX = w * 0.22;
-  const parkY = h * 0.5;
+  const startX = w * 1.16;
+  const startY = h * -0.4;
   const n = finals.length;
+  // One continuous flight: TR → BL arc → final seat (no stack / park).
+  const flightMs = 2100;
+  const stagger = 95;
+  const ease = "cubic-bezier(0.22, 0.72, 0.12, 1)";
 
   rail.classList.add("is-intro");
+
+  // Title rides with the unfold — whole block fades together, 2× slower.
+  let titleJob = Promise.resolve(true);
   if (center) {
-    center.classList.add("is-intro-hidden");
+    center.classList.remove("is-intro-hidden");
+    center.style.visibility = "visible";
     center.style.opacity = "0";
-    center.style.visibility = "hidden";
+    titleJob = animateEl(
+      center,
+      [
+        { opacity: 0, transform: "translate(-50%, calc(-50% + 18px))" },
+        {
+          opacity: 0,
+          transform: "translate(-50%, calc(-50% + 18px))",
+          offset: 0.28,
+        },
+        {
+          opacity: 0.35,
+          transform: "translate(-50%, calc(-50% + 8px))",
+          offset: 0.55,
+        },
+        { opacity: 1, transform: "translate(-50%, -50%)" },
+      ],
+      {
+        duration: 3000,
+        delay: 520,
+        easing: "cubic-bezier(0.2, 0.65, 0.18, 1)",
+        fill: "forwards",
+      }
+    );
   }
 
   finals.forEach(({ el }, i) => {
     el.classList.add("is-intro");
-    el.style.left = `${startX + i * 26}px`;
-    el.style.top = `${startY - i * 14}px`;
+    el.style.left = `${startX + i * 22}px`;
+    el.style.top = `${startY - i * 12}px`;
     el.style.opacity = "0";
-    el.style.setProperty("--bmc-yaw", "18deg");
-    el.style.setProperty("--bmc-zoom", "0.88");
+    el.style.setProperty("--bmc-yaw", "16deg");
+    el.style.setProperty("--bmc-zoom", "0.9");
     el.style.setProperty("--bmc-persp", "480px");
-    el.style.zIndex = String(90 - i);
+    el.style.zIndex = String(40 + i);
     const cap = el.querySelector(".bmc-card-artist");
     if (cap) cap.style.opacity = "0";
   });
 
-  // Phase 1 — ten covers streak from top-right down to bottom-left.
-  const dashJobs = finals.map(({ el }, i) =>
-    animateEl(
-      el,
-      [
-        {
-          left: `${startX + i * 26}px`,
-          top: `${startY - i * 14}px`,
-          opacity: 0,
-          offset: 0,
-        },
-        {
-          left: `${startX * 0.72 + midX * 0.28 + i * 12}px`,
-          top: `${startY * 0.15 + midY * 0.55 - i * 6}px`,
-          opacity: 1,
-          offset: 0.28,
-        },
-        {
-          left: `${midX * 0.35 + endX * 0.65 + i * 8}px`,
-          top: `${midY * 0.25 + endY * 0.55 - i * 4}px`,
-          opacity: 1,
-          offset: 0.62,
-        },
-        {
-          left: `${endX + i * 6}px`,
-          top: `${endY - i * 5}px`,
-          opacity: 1,
-          offset: 0.82,
-        },
-        {
-          left: `${parkX + (i - (n - 1) / 2) * 4}px`,
-          top: `${parkY}px`,
-          opacity: 1,
-          offset: 1,
-        },
-      ],
-      {
-        duration: 1480,
-        delay: i * 78,
-        easing: "cubic-bezier(0.18, 0.82, 0.12, 1)",
-        fill: "forwards",
-      }
-    )
-  );
-  await Promise.all(dashJobs);
-  if (token !== bmcIntroToken) return;
+  const flightJobs = finals.map(({ el, x, y, yaw, zoom, persp }, i) => {
+    // Diagonal sweep points, then ease into each card's own final seat.
+    const sx = startX + i * 22;
+    const sy = startY - i * 12;
+    const aX = w * 0.72 + (i - (n - 1) / 2) * 8;
+    const aY = h * 0.12 - i * 4;
+    const bX = w * 0.28 + (x - w * 0.5) * 0.22;
+    const bY = h * 0.72 + (y - h * 0.5) * 0.1;
+    const cX = x * 0.55 + bX * 0.45;
+    const cY = y * 0.55 + bY * 0.45;
 
-  finals.forEach(({ el }, i) => {
-    el.getAnimations().forEach((a) => a.cancel());
-    el.style.left = `${parkX + (i - (n - 1) / 2) * 4}px`;
-    el.style.top = `${parkY}px`;
-    el.style.opacity = "1";
-  });
-  if (!(await waitMs(260, token))) return;
-
-  // Phase 2 — unfold one-by-one from left-center toward right-center.
-  const fanJobs = finals.map(({ el, x, y, yaw, zoom, persp }, i) => {
-    const stackX = parkX + (i - (n - 1) / 2) * 4;
-    el.style.zIndex = String(40 + i);
     window.setTimeout(() => {
       if (token !== bmcIntroToken) return;
       el.style.setProperty("--bmc-yaw", yaw);
       el.style.setProperty("--bmc-zoom", zoom);
       el.style.setProperty("--bmc-persp", persp);
       const cap = el.querySelector(".bmc-card-artist");
-      if (cap) {
-        cap.animate(
-          [
-            { opacity: 0, transform: "translateY(8px)" },
-            { opacity: 0.92, transform: "translateY(0)" },
-          ],
-          {
-            duration: 520,
-            easing: "cubic-bezier(0.22, 0.7, 0.18, 1)",
-            fill: "forwards",
-          }
-        ).finished.finally(() => {
-          if (token === bmcIntroToken) cap.style.opacity = "";
-        });
-      }
-    }, i * 110);
+      if (!cap) return;
+      cap.animate([{ opacity: 0 }, { opacity: 0.92 }], {
+        duration: 700,
+        easing: "cubic-bezier(0.22, 0.7, 0.18, 1)",
+        fill: "forwards",
+      }).finished.finally(() => {
+        if (token === bmcIntroToken) cap.style.opacity = "";
+      });
+    }, stagger * i + flightMs * 0.48);
+
     return animateEl(
       el,
       [
-        { left: `${stackX}px`, top: `${parkY}px`, opacity: 1 },
-        {
-          left: `${stackX + (x - stackX) * 0.4}px`,
-          top: `${parkY + (y - parkY) * 0.22}px`,
-          opacity: 1,
-          offset: 0.42,
-        },
-        { left: `${x}px`, top: `${y}px`, opacity: 1 },
+        { left: `${sx}px`, top: `${sy}px`, opacity: 0, offset: 0 },
+        { left: `${aX}px`, top: `${aY}px`, opacity: 1, offset: 0.22 },
+        { left: `${bX}px`, top: `${bY}px`, opacity: 1, offset: 0.48 },
+        { left: `${cX}px`, top: `${cY}px`, opacity: 1, offset: 0.72 },
+        { left: `${x}px`, top: `${y}px`, opacity: 1, offset: 1 },
       ],
       {
-        duration: 920,
-        delay: i * 110,
-        easing: "cubic-bezier(0.12, 0.88, 0.16, 1)",
+        duration: flightMs,
+        delay: stagger * i,
+        easing: ease,
         fill: "forwards",
       }
     );
   });
 
-  await Promise.all(fanJobs);
+  await Promise.all([...flightJobs, titleJob]);
   if (token !== bmcIntroToken) return;
 
   finals.forEach(({ el, leftStyle, topStyle, yaw, zoom, persp }) => {
@@ -1325,55 +1287,14 @@ async function playBmcIntro() {
     el.querySelector(".bmc-card-artist")?.style.removeProperty("opacity");
   });
 
-  if (!(await waitMs(200, token))) return;
-
-  // Phase 3 — Best / Music Cover title fades in last, line by line.
-  if (center && token === bmcIntroToken) {
-    center.classList.remove("is-intro-hidden");
-    center.style.visibility = "visible";
-    center.style.opacity = "1";
-    const lines = [
-      ".bmc-center-en-top",
-      ".bmc-center-en-rest",
-      ".bmc-center-zh",
-      ".bmc-center-status",
-      ".bmc-center-hint",
-    ]
-      .map((sel) => center.querySelector(sel))
-      .filter(Boolean);
-
-    lines.forEach((node) => {
-      node.style.opacity = "0";
-      node.style.transform = "translateY(16px)";
-    });
-
-    for (let i = 0; i < lines.length; i += 1) {
-      if (token !== bmcIntroToken) return;
-      const node = lines[i];
-      await animateEl(
-        node,
-        [
-          { opacity: 0, transform: "translateY(16px)" },
-          { opacity: 1, transform: "translateY(0)" },
-        ],
-        {
-          duration: i < 2 ? 780 : 560,
-          easing: "cubic-bezier(0.22, 0.7, 0.18, 1)",
-          fill: "forwards",
-        }
-      );
-      if (token !== bmcIntroToken) return;
-      node.getAnimations().forEach((a) => a.cancel());
-      node.style.opacity = "";
-      node.style.transform = "";
-      if (i < lines.length - 1 && !(await waitMs(90, token))) return;
-    }
+  if (center) {
+    center.getAnimations().forEach((a) => a.cancel());
     center.style.opacity = "";
     center.style.transform = "";
     center.style.visibility = "";
+    center.classList.remove("is-intro-hidden");
   }
 
-  if (token !== bmcIntroToken) return;
   rail.classList.remove("is-intro");
   page?.classList.remove("is-introing");
   delete document.body.dataset.bmcIntro;

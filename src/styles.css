@@ -2650,11 +2650,7 @@ body[data-page="award-nominee"] {
   transition: opacity 0.9s var(--ease);
 }
 
-.bmc-page.is-introing .bmc-center-en-top,
-.bmc-page.is-introing .bmc-center-en-rest,
-.bmc-page.is-introing .bmc-center-zh,
-.bmc-page.is-introing .bmc-center-status,
-.bmc-page.is-introing .bmc-center-hint {
+.bmc-page.is-introing .bmc-center {
   will-change: opacity, transform;
 }
 
