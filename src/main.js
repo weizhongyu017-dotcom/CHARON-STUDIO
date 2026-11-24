@@ -989,7 +989,6 @@ function awardNomineeView(id) {
         <div class="bmc-rail">
           <div class="bmc-side is-left" aria-hidden="true">${leftCards}</div>
           <button type="button" class="bmc-center" data-bmc-toggle aria-expanded="false" aria-controls="bmc-list">
-            <span class="bmc-center-index">${pad(pack.index)}</span>
             <span class="bmc-center-en">${escapeHtml(pack.en)}</span>
             <span class="bmc-center-zh">${escapeHtml(pack.zh)}</span>
             <span class="bmc-center-status">${escapeHtml(pack.status)}</span>
@@ -1013,44 +1012,33 @@ function awardNomineeView(id) {
 
 function fitBmcRail() {
   const rail = document.querySelector(".bmc-rail");
-  const stage = document.querySelector(".bmc-stage");
-  if (!rail || !stage) return;
+  if (!rail) return;
 
-  rail.style.transform = "none";
-  rail.style.setProperty("--bmc-scale", "1");
-
+  // Prefer large covers; then symmetrically scale to fit the viewport.
   const leftN = document.querySelectorAll(".bmc-side.is-left .bmc-card").length || 5;
   const rightN = document.querySelectorAll(".bmc-side.is-right .bmc-card").length || 5;
   const total = leftN + rightN;
   const gaps = Math.max(0, leftN - 1) + Math.max(0, rightN - 1);
+  const margin = 28;
+  const avail = Math.max(420, window.innerWidth - margin * 2);
+  const center = Math.min(200, Math.max(156, avail * 0.12));
+  const gap = Math.max(14, Math.min(24, avail * 0.012));
+  const grow = 14 * 2;
+  // Big first — visual hero covers.
+  let card = Math.min(236, Math.max(168, (avail - center - gaps * gap - grow) / total + 28));
+  card = Math.max(156, Math.min(236, card));
 
-  const cs = getComputedStyle(stage);
-  const padX =
-    (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
-  // Real content box — must fit all 5+5 covers + center title.
-  const stageInner = Math.max(360, stage.clientWidth - padX);
-  const center = Math.min(220, Math.max(168, stageInner * 0.16));
-  const sidePad = 12;
-  const grow = 8 * 2;
-  const availCards = Math.max(280, stageInner - center - sidePad);
-  const gap = Math.max(10, Math.min(18, availCards * 0.014));
-  // Prefer larger covers; scale the whole rail down only if needed.
-  const ideal = Math.min(188, Math.max(128, availCards / total + 18));
-  const fitted = Math.max(
-    118,
-    Math.min(ideal, (availCards - gaps * gap - grow) / total)
-  );
-  rail.style.setProperty("--bmc-card", `${Math.round(fitted)}px`);
+  rail.style.setProperty("--bmc-card", `${Math.round(card)}px`);
   rail.style.setProperty("--bmc-gap", `${Math.round(gap)}px`);
   rail.style.setProperty("--bmc-center", `${Math.round(center)}px`);
+  rail.style.setProperty("--bmc-scale", "1");
 
-  requestAnimationFrame(() => {
-    const used = rail.scrollWidth;
-    if (used > stageInner + 2) {
-      const scale = Math.max(0.72, (stageInner - 8) / used);
-      rail.style.setProperty("--bmc-scale", String(scale));
-    }
-  });
+  const applyScale = () => {
+    const used = rail.scrollWidth || 1;
+    const scale = Math.min(1, (avail - 4) / used);
+    rail.style.setProperty("--bmc-scale", String(Math.max(0.74, scale)));
+  };
+  requestAnimationFrame(() => requestAnimationFrame(applyScale));
 }
 
 function bindAwardNomineeToggle() {
