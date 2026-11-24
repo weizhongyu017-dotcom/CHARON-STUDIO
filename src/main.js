@@ -1146,8 +1146,8 @@ async function playBmcIntro() {
     cards.forEach((el) => {
       el.classList.remove("is-intro");
       el.style.opacity = "";
+      el.style.transform = "";
       el.style.zIndex = "";
-      el.querySelector(".bmc-card-artist")?.style.removeProperty("opacity");
     });
     if (center) {
       center.classList.remove("is-intro-hidden");
@@ -1164,35 +1164,29 @@ async function playBmcIntro() {
     return;
   }
 
-  // Final seats in rail-local px (left/top = card center).
+  // Seats stay put — only GPU transforms move (no left/top thrash, no end snap).
   const railBox = rail.getBoundingClientRect();
   const finals = cards.map((el) => {
     const box = el.getBoundingClientRect();
     return {
       el,
-      leftStyle: el.style.left || "50%",
-      topStyle: el.style.top || "50%",
       x: box.left + box.width / 2 - railBox.left,
       y: box.top + box.height / 2 - railBox.top,
-      yaw: el.style.getPropertyValue("--bmc-yaw") || "0deg",
-      zoom: el.style.getPropertyValue("--bmc-zoom") || "1",
-      persp: el.style.getPropertyValue("--bmc-persp") || "520px",
     };
   });
 
   const w = railBox.width;
   const h = Math.max(railBox.height, 360);
-  const startX = w * 1.16;
-  const startY = h * -0.4;
+  const startX = w * 1.14;
+  const startY = h * -0.38;
   const n = finals.length;
-  // One continuous flight: TR → BL arc → final seat (no stack / park).
-  const flightMs = 3400;
-  const stagger = 130;
-  const ease = "cubic-bezier(0.18, 0.78, 0.12, 1)";
+  const flightMs = 4000;
+  const stagger = 110;
+  const ease = "cubic-bezier(0.2, 0.7, 0.14, 1)";
+  const base = "translate(-50%, -50%)";
 
   rail.classList.add("is-intro");
 
-  // Title rides with the unfold — whole block fades together, slower.
   let titleJob = Promise.resolve(true);
   if (center) {
     center.classList.remove("is-intro-hidden");
@@ -1201,23 +1195,27 @@ async function playBmcIntro() {
     titleJob = animateEl(
       center,
       [
-        { opacity: 0, transform: "translate(-50%, calc(-50% + 14px))" },
         {
           opacity: 0,
-          transform: "translate(-50%, calc(-50% + 14px))",
-          offset: 0.32,
+          transform: `${base} translate3d(0, 12px, 0)`,
+          offset: 0,
         },
         {
-          opacity: 0.28,
-          transform: "translate(-50%, calc(-50% + 6px))",
-          offset: 0.58,
+          opacity: 0,
+          transform: `${base} translate3d(0, 12px, 0)`,
+          offset: 0.34,
         },
-        { opacity: 1, transform: "translate(-50%, -50%)" },
+        {
+          opacity: 0.32,
+          transform: `${base} translate3d(0, 5px, 0)`,
+          offset: 0.6,
+        },
+        { opacity: 1, transform: `${base} translate3d(0, 0, 0)`, offset: 1 },
       ],
       {
-        duration: 4800,
-        delay: 720,
-        easing: "cubic-bezier(0.18, 0.6, 0.16, 1)",
+        duration: 5200,
+        delay: 900,
+        easing: "cubic-bezier(0.18, 0.58, 0.16, 1)",
         fill: "forwards",
       }
     );
@@ -1225,61 +1223,49 @@ async function playBmcIntro() {
 
   finals.forEach(({ el }, i) => {
     el.classList.add("is-intro");
-    el.style.left = `${startX + i * 22}px`;
-    el.style.top = `${startY - i * 12}px`;
     el.style.opacity = "0";
-    el.style.setProperty("--bmc-yaw", "16deg");
-    el.style.setProperty("--bmc-zoom", "0.9");
-    el.style.setProperty("--bmc-persp", "480px");
     el.style.zIndex = String(40 + i);
-    const cap = el.querySelector(".bmc-card-artist");
-    if (cap) cap.style.opacity = "0";
+    // Final perspective from the start — no mid-flight yaw/zoom pops.
   });
 
-  const flightJobs = finals.map(({ el, x, y, yaw, zoom, persp }, i) => {
-    // Diagonal sweep points, then ease into each card's own final seat.
-    const sx = startX + i * 22;
-    const sy = startY - i * 12;
-    const aX = w * 0.72 + (i - (n - 1) / 2) * 8;
-    const aY = h * 0.12 - i * 4;
-    const bX = w * 0.28 + (x - w * 0.5) * 0.22;
-    const bY = h * 0.72 + (y - h * 0.5) * 0.1;
-    const cX = x * 0.62 + bX * 0.38;
-    const cY = y * 0.62 + bY * 0.38;
-
-    window.setTimeout(() => {
-      if (token !== bmcIntroToken) return;
-      el.style.setProperty("--bmc-yaw", yaw);
-      el.style.setProperty("--bmc-zoom", zoom);
-      el.style.setProperty("--bmc-persp", persp);
-      const cap = el.querySelector(".bmc-card-artist");
-      if (!cap) return;
-      const capAnim = cap.animate([{ opacity: 0 }, { opacity: 0.92 }], {
-        duration: 1100,
-        easing: "cubic-bezier(0.22, 0.7, 0.18, 1)",
-        fill: "forwards",
-      });
-      capAnim.finished
-        .then(() => {
-          try {
-            capAnim.commitStyles();
-          } catch (_) {
-            /* ignore */
-          }
-          capAnim.cancel();
-          if (token === bmcIntroToken) cap.style.opacity = "";
-        })
-        .catch(() => {});
-    }, stagger * i + flightMs * 0.52);
+  const flightJobs = finals.map(({ el, x, y }, i) => {
+    const o0x = startX + i * 20 - x;
+    const o0y = startY - i * 10 - y;
+    const o1x = w * 0.7 + (i - (n - 1) / 2) * 6 - x;
+    const o1y = h * 0.1 - i * 3 - y;
+    const o2x = w * 0.26 + (x - w * 0.5) * 0.18 - x;
+    const o2y = h * 0.7 + (y - h * 0.5) * 0.08 - y;
+    const o3x = o2x * 0.35;
+    const o3y = o2y * 0.35;
 
     return animateEl(
       el,
       [
-        { left: `${sx}px`, top: `${sy}px`, opacity: 0, offset: 0 },
-        { left: `${aX}px`, top: `${aY}px`, opacity: 1, offset: 0.2 },
-        { left: `${bX}px`, top: `${bY}px`, opacity: 1, offset: 0.46 },
-        { left: `${cX}px`, top: `${cY}px`, opacity: 1, offset: 0.74 },
-        { left: `${x}px`, top: `${y}px`, opacity: 1, offset: 1 },
+        {
+          transform: `${base} translate3d(${o0x}px, ${o0y}px, 0)`,
+          opacity: 0,
+          offset: 0,
+        },
+        {
+          transform: `${base} translate3d(${o1x}px, ${o1y}px, 0)`,
+          opacity: 1,
+          offset: 0.22,
+        },
+        {
+          transform: `${base} translate3d(${o2x}px, ${o2y}px, 0)`,
+          opacity: 1,
+          offset: 0.5,
+        },
+        {
+          transform: `${base} translate3d(${o3x}px, ${o3y}px, 0)`,
+          opacity: 1,
+          offset: 0.78,
+        },
+        {
+          transform: `${base} translate3d(0px, 0px, 0)`,
+          opacity: 1,
+          offset: 1,
+        },
       ],
       {
         duration: flightMs,
@@ -1293,31 +1279,26 @@ async function playBmcIntro() {
   await Promise.all([...flightJobs, titleJob]);
   if (token !== bmcIntroToken) return;
 
-  // Keep committed px seats — avoid snapping calc() which caused the end hitch.
-  // Softly restore percentage seats + float after a quiet frame.
-  finals.forEach(({ el, x, y, yaw, zoom, persp }) => {
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
+  // Drop inline transform/opacity so CSS takes over with zero visual delta.
+  finals.forEach(({ el }) => {
     el.style.opacity = "1";
+    el.style.transform = base;
     el.style.zIndex = "";
-    el.style.setProperty("--bmc-yaw", yaw);
-    el.style.setProperty("--bmc-zoom", zoom);
-    el.style.setProperty("--bmc-persp", persp);
-    el.querySelector(".bmc-card-artist")?.style.removeProperty("opacity");
   });
-
   if (center) {
     center.style.opacity = "1";
-    center.style.transform = "translate(-50%, -50%)";
+    center.style.transform = base;
     center.style.visibility = "visible";
     center.classList.remove("is-intro-hidden");
   }
 
-  if (!(await waitMs(180, token))) return;
+  // One quiet frame, then clear inlines + re-enable float.
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  if (token !== bmcIntroToken) return;
 
-  finals.forEach(({ el, leftStyle, topStyle }) => {
-    el.style.left = leftStyle;
-    el.style.top = topStyle;
+  finals.forEach(({ el }) => {
+    el.style.opacity = "";
+    el.style.transform = "";
     el.classList.remove("is-intro");
   });
   if (center) {
@@ -2613,8 +2594,7 @@ window.addEventListener("resize", () => {
         el.classList.remove("is-intro");
         el.getAnimations().forEach((a) => a.cancel());
         el.style.opacity = "";
-        el.style.left = "";
-        el.style.top = "";
+        el.style.transform = "";
         el.style.zIndex = "";
       });
       const center = document.querySelector(".bmc-center");

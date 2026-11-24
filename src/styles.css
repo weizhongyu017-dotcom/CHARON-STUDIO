@@ -2622,21 +2622,18 @@ body[data-page="award-nominee"] {
   max-width: 100%;
 }
 
-/* Entrance choreography — final layout unchanged after intro. */
+/* Entrance — compositor-only (transform/opacity). Seats never move. */
 .bmc-rail.is-intro {
   overflow: visible;
 }
 
 .bmc-rail.is-intro .bmc-card {
-  will-change: left, top, opacity;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .bmc-card.is-intro .bmc-card-pose {
   animation: none !important;
-  transition:
-    --bmc-yaw 0.7s var(--ease),
-    --bmc-zoom 0.7s var(--ease),
-    --bmc-persp 0.7s var(--ease);
 }
 
 .bmc-center.is-intro-hidden {
@@ -2647,11 +2644,12 @@ body[data-page="award-nominee"] {
 
 .bmc-page.is-introing .bmc-kicker {
   opacity: 0.22;
-  transition: opacity 0.9s var(--ease);
+  transition: opacity 1.2s var(--ease);
 }
 
 .bmc-page.is-introing .bmc-center {
   will-change: opacity, transform;
+  backface-visibility: hidden;
 }
 
 .bmc-center {
